@@ -1,0 +1,761 @@
+/* Inlined tiptap-table.css */
+/* Styles de base pour tous les tableaux Tiptap, sur PC et mobile */
+.tiptap table, .ProseMirror table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 1em 0;
+  border-radius: 16px 16px 16px 16px;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+.tiptap th, .ProseMirror th,
+.tiptap td, .ProseMirror td {
+  border: 1px solid #2563eb;
+  padding: 0.5em 0.75em;
+  text-align: left;
+  background: #111827;
+  color: #fff;
+}
+.tiptap th, .ProseMirror th {
+  background: #1e293b;
+  font-weight: 600;
+  color: #3b82f6;
+}
+.tiptap tr.selected td, .tiptap td.selected,
+.ProseMirror tr.selected td, .ProseMirror td.selected {
+  background: #e0e7ef;
+  color: #111827;
+}
+.tiptap .column-resize-handle, .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #a0aec0;
+  cursor: col-resize;
+  z-index: 10;
+}
+.tiptap .tableWrapper, .ProseMirror .tableWrapper {
+  overflow-x: auto;
+}
+
+/* Inlined mobile-interface.css */
+/* Styles spécifiques à l’interface mobile pour Tiptap et l’application */
+/* ==================== SPIRAL PICKER PORTAL (Mobile via JS detection) ==================== */
+/* These styles apply when picker is rendered via Portal (already mobile-detected in JS) */
+body > .spiral-picker-container-mobile {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: auto !important;
+  transform: none !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: auto !important;
+  max-height: 55vh !important;
+  min-height: 280px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 30001 !important;
+  padding: 12px 8px 16px 8px !important;
+  border-radius: 20px 20px 0 0 !important;
+  background: linear-gradient(180deg, #271d44 0%, #1a1428 100%) !important;
+  border: none !important;
+  border-top: 2.5px solid #f59e42 !important;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  animation: slideUpPicker 0.25s ease-out !important;
+}
+
+@keyframes slideUpPicker {
+  from {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+body > .spiral-picker-container-mobile .spiral-swipe {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 280px !important;
+  margin: 0 auto !important;
+  transform: none !important;
+  filter: none !important;
+  border-radius: 16px !important;
+}
+
+body > .spiral-picker-container-mobile .spiral-swipe.mirror {
+  display: none !important;
+}
+
+body > .spiral-picker-container-mobile .spiral-swipe.active {
+  transform: none !important;
+  filter: none !important;
+}
+
+body > .spiral-picker-container-mobile canvas {
+  max-width: 200px !important;
+  max-height: 200px !important;
+  width: 200px !important;
+  height: 200px !important;
+}
+
+body > .spiral-picker-container-mobile .favorites-scroll-x {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Switch button for double picker on mobile portal */
+.spiral-picker-mobile-switch {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  margin-bottom: 8px !important;
+  width: 100% !important;
+}
+
+.spiral-picker-mobile-switch button {
+  flex: 1 !important;
+  max-width: 140px !important;
+  padding: 10px 16px !important;
+  border-radius: 12px !important;
+  border: 2px solid transparent !important;
+  background: rgba(39, 29, 68, 0.8) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.spiral-picker-mobile-switch button.active {
+  border-color: #f59e42 !important;
+  background: rgba(245, 158, 66, 0.2) !important;
+  color: #fbbf24 !important;
+}
+
+.spiral-picker-mobile-switch button svg {
+  font-size: 18px !important;
+}
+@media (max-width: 720px) {
+  .ProseMirror,
+  .module,
+  .module-content,
+  .note-viewer {
+    font-size: 0.92rem !important;
+    line-height: 1.28 !important;
+  }
+  .module th, .module td,
+  .module-content th, .module-content td,
+  .note-viewer th, .note-viewer td,
+  .ProseMirror th, .ProseMirror td {
+    font-size: 1rem !important;
+    padding: 10px 14px !important;
+  }
+  .table-scroll-x {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 auto 8px auto;
+    box-sizing: border-box;
+    padding-bottom: 2px;
+    border-radius: 16px;
+    background: inherit;
+  }
+  .table-scroll-x table {
+    min-width: 520px;
+    width: auto !important;
+    display: table;
+    margin: 0;
+    table-layout: auto;
+    border-radius: 16px;
+    background: inherit;
+  }
+  .ProseMirror, .module-table-wrapper, .note-viewer {
+    overflow-x: visible;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  .ProseMirror th, .ProseMirror td,
+  .module-table-wrapper th, .module-table-wrapper td,
+  .note-viewer th, .note-viewer td,
+  .module-content th, .module-content td,
+  .module th, .module td {
+    font-size: 1rem !important;
+    padding: 10px 14px !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    hyphens: none !important;
+    text-align: center !important;
+  }
+  .tiptap-toolbar-mobile {
+    position: fixed !important;
+    left: 4px !important;
+    right: 4px !important;
+    top: 8px !important;
+    bottom: auto !important;
+    height: auto !important;
+    max-height: 52px !important;
+    min-height: 44px !important;
+    width: calc(100vw - 8px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 4px !important;
+    padding: 6px 10px !important;
+    border-radius: 12px !important;
+    z-index: 10001 !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    justify-content: flex-start !important;
+    align-items: center !important;
+  }
+  .tiptap-toolbar-mobile::-webkit-scrollbar {
+    display: none;
+  }
+  .tiptap-toolbar-mobile button {
+    flex: 0 0 auto !important;
+    width: 39px !important;
+    height: 39px !important;
+    min-width: 39px !important;
+    margin: 0 3px !important;
+    padding: 6px !important;
+    background: rgba(39, 29, 68, 0.85) !important;
+    border: 1.5px solid rgba(245, 158, 66, 0.5) !important;
+    border-radius: 10px !important;
+    color: #fff !important;
+    font-size: 15px !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .tiptap-toolbar-mobile button svg,
+  .tiptap-toolbar-mobile button svg * {
+    font-size: 21px !important;
+    width: 21px !important;
+    height: 21px !important;
+    min-width: 21px !important;
+    min-height: 21px !important;
+    color: #fff !important;
+    fill: #fff !important;
+    stroke: #fff !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .editor-panel-mobile {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    border-radius: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 9999 !important;
+    box-sizing: border-box !important;
+  }
+  .editor-panel-mobile h2 {
+    font-size: 18px !important;
+    margin-bottom: 12px !important;
+  }
+  .editor-panel-mobile select {
+    font-size: 16px !important;
+    padding: 10px 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .editor-panel-mobile .module-edit-block {
+    padding: 16px !important;
+    margin: 12px 0 !important;
+  }
+  .editor-panel-mobile input,
+  .editor-panel-mobile textarea {
+    font-size: 16px !important;
+    padding: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .editor-panel-mobile button {
+    padding: 10px 16px !important;
+    font-size: 15px !important;
+    min-height: 44px !important;
+  }
+
+  .editor-panel-mobile {
+    padding-bottom: 80px !important; /* reserve space for fixed save button */
+  }
+  .editor-panel-mobile .rotate3d-perspective {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: 12px !important;
+    top: auto !important;
+    transform: translateX(-50%) !important;
+    z-index: 10002 !important;
+    display: flex !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 400px !important;
+    will-change: auto !important;
+  }
+  .editor-panel-mobile .rotate3d-perspective > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+  }
+
+  .keyboard-open .editor-panel-mobile .rotate3d-perspective {
+    display: none !important;
+  }
+}
+/* Correction surligneur multicolore Tiptap pour le viewer : la couleur inline prime sur le fond par défaut */
+.note-viewer mark[data-type="highlight"] {
+  background-color: inherit !important;
+}
+.note-viewer mark[data-type="highlight"][style] {
+  background-color: unset !important;
+}
+/* Forcer l'affichage des puces et numéros dans les listes Tiptap */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.6em !important;
+  margin: 0.5em 0 !important;
+}
+.ProseMirror ul {
+  list-style-type: disc !important;
+}
+.ProseMirror ol {
+  list-style-type: decimal !important;
+}
+.ProseMirror li {
+  margin: 0.2em 0 !important;
+  padding-left: 0.1em !important;
+}
+/* Permet le scroll horizontal des tableaux sur mobile et évite qu'ils débordent */
+
+/* Scroll horizontal uniquement sur les tableaux, pas sur tout le bloc */
+.ProseMirror table {
+  width: 100% !important;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+  table-layout: auto;
+}
+
+/* Scrollbar personnalisée pour les tableaux */
+.ProseMirror table::-webkit-scrollbar {
+  height: 7px;
+  background: transparent;
+}
+.ProseMirror table::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 6px;
+}
+.ProseMirror table::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ProseMirror table {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 transparent;
+}
+
+/* Scrollbar personnalisée, fine et collée au tableau */
+.table-scroll-x::-webkit-scrollbar {
+  height: 7px;
+  background: transparent;
+}
+.table-scroll-x::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 6px;
+}
+
+/* Panel and module visual refinements */
+.module, .module-content, .note-viewer {
+  background: transparent;
+  color: #e6eef8;
+  line-height: 1.5;
+}
+
+.module-card {
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 8px 28px rgba(6,6,12,0.56);
+}
+
+.note-viewer p {
+  margin: 0 0 10px 0;
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent1, #f59e42);
+  letter-spacing: 0.6px;
+}
+
+.module h2 {
+  margin: 0 0 8px 0;
+  font-weight: 900;
+}
+
+.rotate3d-perspective > * {
+  will-change: transform;
+}
+.table-scroll-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-scroll-x {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 transparent;
+}
+
+/* Correction surligneur multicolore Tiptap : laisse la couleur inline primer */
+
+.favorites-scroll-x {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 220px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Firefox: cache la scrollbar native */
+  -ms-overflow-style: none; /* IE/Edge: cache la scrollbar native */
+  white-space: nowrap;
+}
+.favorites-scroll-x::-webkit-scrollbar {
+  display: none; /* Chrome/Safari: cache la scrollbar native */
+}
+.favorites-scroll-x > button {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px;
+  display: inline-block;
+}
+
+.ProseMirror em, .ProseMirror i {
+  font-style: italic !important;
+}
+
+.note-viewer {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  color: inherit;
+}
+
+.ProseMirror p:empty {
+  min-height: 0.7em;
+  margin: 0.2em 0;
+  padding: 0;
+}
+
+.ProseMirror p {
+  margin: 0 0 0.5em 0;
+}
+
+.ProseMirror br {
+  line-height: 1.2;
+}
+
+/* ...rest of existing code... */
+.tableWrapper .tableResizeHandle {
+  width: 10px !important;
+  background: #f59e42 !important;
+  opacity: 1 !important;
+  border-radius: 5px;
+  transition: background 0.2s, opacity 0.2s;
+  cursor: col-resize !important;
+  z-index: 10000 !important;
+  box-shadow: 0 0 0 2px #fff, 0 0 8px #f59e42;
+}
+.tableWrapper .tableResizeHandle:hover {
+  background: #3b82f6 !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px #fff, 0 0 12px #3b82f6;
+}
+/* Tableaux Tiptap visibles et stylés */
+/* TABLEAU STYLE WORD/EXCEL */
+.ProseMirror table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content !important;
+  min-width: 480px;
+  max-width: none;
+  margin: 1.2em 0;
+  background: rgba(30, 34, 54, 0.98); /* fond sombre, légèrement transparent */
+  color: #e0e6ed;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(30,41,59,0.18);
+  border: 2px solid #3b82f6;
+}
+.ProseMirror th, .ProseMirror td {
+  background: rgba(23, 25, 40, 0.92);
+  color: #e0e6ed;
+  border: 1.5px solid #3b82f6;
+  font-size: 1.08rem;
+  padding: 13px 18px;
+  min-width: 48px;
+  text-align: left;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  position: relative;
+}
+
+/* Si une couleur de fond est appliquée en inline, elle doit primer sur le fond du thème */
+.ProseMirror th {
+  background: #172554;
+  font-weight: bold;
+  color: #60a5fa;
+  border-bottom: 2.5px solid #3b82f6;
+}
+.ProseMirror td {
+  background: rgba(23, 25, 40, 0.92);
+}
+.ProseMirror td.selectedCell, .ProseMirror th.selectedCell {
+  outline: 2.5px solid #f59e42;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px #fbbf24;
+  z-index: 2;
+}
+/* Sélection visuelle */
+.ProseMirror td.selectedCell, .ProseMirror th.selectedCell {
+  outline: 2px solid #f59e42;
+  outline-offset: -2px;
+}
+/* Optional Tiptap helper CSS imports (commented out: ensure these files exist in public/tiptap/ if you need them) */
+/* @import url('/tiptap/tiptap-table.css'); */
+/* @import url('/tiptap/mobile-interface.css'); */
+/* Correction surligneur multicolore Tiptap pour le viewer : la couleur inline prime sur le fond par défaut */
+.note-viewer mark[data-type="highlight"] {
+  background-color: inherit !important;
+}
+.note-viewer mark[data-type="highlight"][style] {
+  background-color: unset !important;
+}
+/* Forcer l'affichage des puces et numéros dans les listes Tiptap */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.6em !important;
+  margin: 0.5em 0 !important;
+}
+.ProseMirror ul {
+  list-style-type: disc !important;
+}
+.ProseMirror ol {
+  list-style-type: decimal !important;
+}
+.ProseMirror li {
+  margin: 0.2em 0 !important;
+  padding-left: 0.1em !important;
+}
+/* Permet le scroll horizontal des tableaux sur mobile et évite qu'ils débordent */
+
+/* Scroll horizontal uniquement sur les tableaux, pas sur tout le bloc */
+.ProseMirror table {
+  width: 100% !important;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 12px;
+  table-layout: auto;
+}
+
+/* Scrollbar personnalisée pour les tableaux */
+.ProseMirror table::-webkit-scrollbar {
+  height: 7px;
+  background: transparent;
+}
+.ProseMirror table::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 6px;
+}
+.ProseMirror table::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ProseMirror table {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 transparent;
+}
+
+/* Scrollbar personnalisée, fine et collée au tableau */
+.table-scroll-x::-webkit-scrollbar {
+  height: 7px;
+  background: transparent;
+}
+.table-scroll-x::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 6px;
+}
+.table-scroll-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-scroll-x {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 transparent;
+}
+
+/* Correction surligneur multicolore Tiptap : laisse la couleur inline primer */
+
+.favorites-scroll-x {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 220px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Firefox: cache la scrollbar native */
+  -ms-overflow-style: none; /* IE/Edge: cache la scrollbar native */
+  white-space: nowrap;
+}
+.favorites-scroll-x::-webkit-scrollbar {
+  display: none; /* Chrome/Safari: cache la scrollbar native */
+}
+.favorites-scroll-x > button {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px;
+  display: inline-block;
+}
+
+.ProseMirror em, .ProseMirror i {
+  font-style: italic !important;
+}
+
+
+
+.note-viewer {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  color: inherit;
+}
+
+.ProseMirror p:empty {
+  min-height: 0.7em;
+  margin: 0.2em 0;
+  padding: 0;
+}
+
+.ProseMirror p {
+  margin: 0 0 0.5em 0;
+}
+
+.ProseMirror br {
+  line-height: 1.2;
+}
+
+/* ...rest of existing code... */
+.tableWrapper .tableResizeHandle {
+  width: 10px !important;
+  background: #f59e42 !important;
+  opacity: 1 !important;
+  border-radius: 5px;
+  transition: background 0.2s, opacity 0.2s;
+  cursor: col-resize !important;
+  z-index: 10000 !important;
+  box-shadow: 0 0 0 2px #fff, 0 0 8px #f59e42;
+}
+.tableWrapper .tableResizeHandle:hover {
+  background: #3b82f6 !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px #fff, 0 0 12px #3b82f6;
+}
+/* Tableaux Tiptap visibles et stylés */
+/* TABLEAU STYLE WORD/EXCEL */
+/* Respect table width from editor, do not force full width in viewer */
+.ProseMirror table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content !important;
+  min-width: 480px;
+  max-width: none;
+  margin: 1.2em 0;
+  background: rgba(30, 34, 54, 0.98); /* fond sombre, légèrement transparent */
+  color: #e0e6ed;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(30,41,59,0.18);
+  border: 2px solid #3b82f6;
+}
+.ProseMirror th, .ProseMirror td {
+  background: rgba(23, 25, 40, 0.92);
+  color: #e0e6ed;
+  border: 1.5px solid #3b82f6;
+  font-size: 1.08rem;
+  padding: 13px 18px;
+  min-width: 48px;
+  text-align: left;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  position: relative;
+}
+
+/* Si une couleur de fond est appliquée en inline, elle doit primer sur le fond du thème */
+.ProseMirror th {
+  background: #172554;
+  font-weight: bold;
+  color: #60a5fa;
+  border-bottom: 2.5px solid #3b82f6;
+}
+.ProseMirror td {
+  background: rgba(23, 25, 40, 0.92);
+}
+/* .ProseMirror tr:nth-child(even) td {
+  background: #f3f4f6;
+} */
+.ProseMirror td.selectedCell, .ProseMirror th.selectedCell {
+  outline: 2.5px solid #f59e42;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 2px #fbbf24;
+  z-index: 2;
+}
+/* .ProseMirror td:hover, .ProseMirror th:hover {
+  background: #e0e7ef !important;
+  box-shadow: 0 2px 8px #3b82f633;
+  z-index: 2;
+} */
+/* Sélection visuelle */
+.ProseMirror td.selectedCell, .ProseMirror th.selectedCell {
+  outline: 2px solid #f59e42;
+  outline-offset: -2px;
+}

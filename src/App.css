@@ -1,0 +1,157 @@
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Applique le dégradé violet de la V1 sur tout le fond */
+  background: linear-gradient(120deg, #271d44 0%, #3a2a5c 60%, #241c3a 100%) !important;
+}
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+
+.App-header {
+  /* On retire le fond, le header est transparent pour laisser voir le dégradé */
+  height: 100vh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 26vh;
+  font-size: calc(10px + 2vmin);
+  color: white;
+  position: relative;
+  overflow: hidden;
+  background: none;
+}
+
+.circle-menu {
+  position: relative;
+  width: 12em;
+  height: 12em;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  overflow: visible;
+}
+
+/* Visual wrapper that contains the bubble visuals (background, border, shadow)
+   and that we scale on hover so the positional transform on the parent stays intact. */
+.circle-item-inner {
+  width: 4.2em;
+  height: 4.2em;
+  margin: -2.1em;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border: 3px solid #fff;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transform-origin: center center;
+}
+
+.circle-item:hover {
+  z-index: 2;
+}
+.circle-item:hover .circle-item-inner {
+  transform: scale(1.08);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+}
+
+/* Disabled state for non-admin users: blur and make inaccessible */
+.circle-item.disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+/* keep admin controls clickable even when module is disabled */
+.circle-item.disabled .circle-item-inner {
+  pointer-events: none; /* prevent inner click opening module */
+  filter: blur(3px) grayscale(0.12) saturate(0.8);
+  box-shadow: none;
+  border-color: rgba(255,255,255,0.02);
+}
+.circle-item.disabled .circle-label {
+  color: rgba(34,34,34,0.6);
+}
+
+/* Admin control buttons inside each bubble */
+.circle-admin-controls {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+.circle-admin-controls .admin-btn {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.circle-admin-controls .admin-btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.circle-label {
+  margin-top: 0.1em;
+  font-size: 0.54em;
+  color: #222;
+  font-weight: bold;
+  text-align: center;
+  overflow-wrap: break-word;
+  width: 90%;
+  line-height: 1.05;
+  white-space: normal;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
