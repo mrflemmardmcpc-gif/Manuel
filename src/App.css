@@ -40,6 +40,49 @@ html, body, #root {
   background: none;
 }
 
+/* Mobile-specific adjustments: reduce header height, shrink circular menu and bubbles,
+   and allow vertical scrolling so modules are not hidden or overlapped by the header. */
+@media (max-width: 720px) {
+  html, body, #root {
+    /* allow scrolling on small screens */
+    overflow-y: auto;
+  }
+
+  .main-header {
+    /* inline styles in App.js use 70px; override on mobile to save space */
+    height: 56px !important;
+    padding: 0 1rem !important;
+    font-size: 1rem !important;
+    box-shadow: 0 3px 12px 0 #3a2a5c88, 0 1px 6px #fff2 !important;
+  }
+
+  .App-header {
+    /* don't force full viewport header on mobile; reduce top padding so circle sits lower */
+    height: auto !important;
+    min-height: 52vh;
+    padding-top: 10vh;
+    padding-bottom: 6vh;
+    justify-content: flex-start;
+  }
+
+  .circle-menu {
+    /* reduce the overall menu and font-size so em-based translate distances shrink */
+    width: 10.2em;
+    height: 10.2em;
+    font-size: 12px; /* reduces the meaning of "em" used in inline transforms */
+  }
+
+  .circle-item-inner {
+    width: 3.4em;
+    height: 3.4em;
+    margin: -1.7em;
+  }
+
+  .circle-label { font-size: 0.48em; }
+
+  .circle-admin-controls .admin-btn { width: 22px; height: 22px; }
+}
+
 .circle-menu {
   position: relative;
   width: 12em;
