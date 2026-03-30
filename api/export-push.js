@@ -1,4 +1,5 @@
 const { exec } = require('child_process');
+const https = require('https');
 
 module.exports = async function handler(req, res) {
   try {
@@ -27,23 +28,37 @@ module.exports = async function handler(req, res) {
   const ref = process.env.WORKFLOW_REF || 'main';
 
   if (GITHUB_TOKEN && owner && repo) {
-    try {
-      const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow_id}/dispatches`;
-      const ghRes = await fetch(url, {
+    // Use native https.request to avoid depending on global fetch
+    const dispatchWorkflow = ({ owner, repo, workflow_id, ref, token }) => new Promise((resolve, reject) => {
+      const payload = JSON.stringify({ ref });
+      const options = {
         method: 'POST',
+        hostname: 'api.github.com',
+        path: `/repos/${owner}/${repo}/actions/workflows/${workflow_id}/dispatches`,
         headers: {
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
+          'User-Agent': 'lemanuel-exporter',
           'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ref }),
+          'Content-Length': Buffer.byteLength(payload),
+        }
+      };
+
+      const req = https.request(options, (r) => {
+        let body = '';
+        r.on('data', (c) => body += c);
+        r.on('end', () => {
+          if (r.statusCode >= 200 && r.statusCode < 300) return resolve({ status: r.statusCode, body });
+          return reject(new Error(`GitHub API ${r.statusCode}: ${body}`));
+        });
       });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
 
-      if (!ghRes.ok) {
-        const errorText = await ghRes.text();
-        return res.status(ghRes.status).json({ error: errorText });
-      }
-
+    try {
+      await dispatchWorkflow({ owner, repo, workflow_id, ref, token: GITHUB_TOKEN });
       return res.status(200).json({ success: true, message: 'Workflow dispatched' });
     } catch (e) {
       return res.status(500).json({ error: e.message });
