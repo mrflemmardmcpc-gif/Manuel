@@ -9,7 +9,18 @@ module.exports = async function handler(req, res) {
     // As a fallback, try to read and parse the raw request body stream.
     const ensureParsedBody = async (request) => {
       try {
-        if (request.body && Object.keys(request.body).length > 0) return;
+        // If req.body is already an object with keys, assume it's parsed.
+        if (request.body && typeof request.body === 'object' && Object.keys(request.body).length > 0) return;
+        // If req.body is a raw JSON string (some hosts provide it like this), try to parse it.
+        if (request.body && typeof request.body === 'string' && request.body.trim()) {
+          try {
+            request.body = JSON.parse(request.body);
+            return;
+          } catch (e) {
+            // fallthrough to attempt streaming parse
+          }
+        }
+        // Fallback: read raw stream and try to parse
         const chunks = [];
         for await (const chunk of request) chunks.push(chunk);
         const raw = Buffer.concat(chunks).toString();
@@ -171,23 +182,48 @@ module.exports = async function handler(req, res) {
       if (req.body && Object.keys(req.body).length > 0 && req.body.data !== undefined) {
         dataObj = req.body.data;
         // If client serialized `data` as a JSON string, try to parse it.
-        // Attempt to parse string payloads, including double-encoded JSON strings
         if (typeof dataObj === 'string') {
           try {
-            let parsed = dataObj;
+            let parsed = dataObj.trim();
+            // Remove common JS module wrapper like `export default ...;` if present
+            if (parsed.startsWith('export default')) {
+              parsed = parsed.replace(/^export\s+default\s+/, '').trim();
+            } else if (parsed.startsWith('export ')) {
+              parsed = parsed.replace(/^export\s+/, '').trim();
+            }
+            // Remove trailing semicolon which would break JSON.parse
+            if (parsed.endsWith(';')) parsed = parsed.slice(0, -1).trim();
+
             let lastParsed = null;
             // keep parsing while the value is a JSON string
             while (typeof parsed === 'string' && parsed !== lastParsed) {
               lastParsed = parsed;
               try {
                 parsed = JSON.parse(parsed);
+                continue;
               } catch (e) {
+                // If JSON.parse fails but the string contains an object-like fragment,
+                // attempt to extract the {...} substring and parse that.
+                if (typeof parsed === 'string' && (parsed[0] === '{' || parsed[0] === '[')) {
+                  const firstBrace = parsed.indexOf('{');
+                  const lastBrace = parsed.lastIndexOf('}');
+                  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                    const candidate = parsed.substring(firstBrace, lastBrace + 1);
+                    try {
+                      parsed = JSON.parse(candidate);
+                      break;
+                    } catch (e2) {
+                      // give up and keep as string
+                      break;
+                    }
+                  }
+                }
                 break;
               }
             }
             dataObj = parsed;
           } catch (e) {
-            // keep as string if parsing fails
+            // keep as string if parsing/cleanup fails
           }
         }
         // If Upstash is configured, persist a module-scoped key when a module is provided,
