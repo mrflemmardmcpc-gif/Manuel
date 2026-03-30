@@ -250,7 +250,22 @@ module.exports = async function handler(req, res) {
       try {
         console.log('[export-push] module=', moduleName, 'bodyKeys=', req.body ? Object.keys(req.body) : null, 'typeof_data=', typeof dataObj, 'isArray=', Array.isArray(dataObj), 'sample=', (typeof dataObj === 'object' ? Object.keys(dataObj).slice(0,5) : String(dataObj).slice(0,200)) );
       } catch (e) { /* ignore logging errors */ }
-      if (!dataObj || (typeof dataObj !== 'object' && !Array.isArray(dataObj))) return res.status(400).json({ error: 'No valid data to export' });
+      if (!dataObj || (typeof dataObj !== 'object' && !Array.isArray(dataObj))) {
+        // Prepare safe debug info to help diagnose what was received
+        const debugInfo = {};
+        try {
+          debugInfo.bodyKeys = req.body ? Object.keys(req.body) : null;
+          debugInfo.bodyDataType = req.body && req.body.data !== undefined ? typeof req.body.data : 'undefined';
+          try {
+            debugInfo.bodyDataSample = req.body && req.body.data !== undefined ? JSON.stringify(req.body.data).slice(0, 200) : null;
+          } catch (e) {
+            debugInfo.bodyDataSample = String(req.body && req.body.data).slice(0, 200);
+          }
+          debugInfo.isArray = Array.isArray(req.body && req.body.data ? req.body.data : null);
+        } catch (e) { /* ignore */ }
+        console.log('[export-push][debug] invalid data, debug=', debugInfo);
+        return res.status(400).json({ error: 'No valid data to export', debug: debugInfo });
+      }
 
       // Prepare exported object in the same shape the pages expect. If the payload already
       // looks like a wrapper (has .value), keep it; otherwise wrap under `value` so pages
