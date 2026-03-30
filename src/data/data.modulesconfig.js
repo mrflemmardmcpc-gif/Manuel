@@ -6,7 +6,7 @@ export default {
     "requiresAuth": false
   },
   "Maçon": {
-    "requiresAuth": false
+    "requiresAuth": true
   },
   "Couvreur": {
     "requiresAuth": true
