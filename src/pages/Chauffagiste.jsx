@@ -1,6 +1,8 @@
 import React from "react";
 import ModulePage from "./ModulePage";
+import dataSrc from "../data/data.chauffagiste";
 
 export default function Chauffagiste({ isAdmin, onHome }) {
-  return <ModulePage moduleName="Chauffagiste" isAdmin={isAdmin} onHome={onHome} dataOverride={{ value: { sections: [], categories: [] } }} />;
+  const data = dataSrc && (dataSrc.value || dataSrc);
+  return <ModulePage moduleName="Chauffagiste" isAdmin={isAdmin} onHome={onHome} dataOverride={data} />;
 }

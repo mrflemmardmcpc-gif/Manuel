@@ -1,6 +1,8 @@
 import React from "react";
 import ModulePage from "./ModulePage";
+import dataSrc from "../data/data.menuisier";
 
 export default function Menuisier({ isAdmin, onHome }) {
-  return <ModulePage moduleName="Menuisier" isAdmin={isAdmin} onHome={onHome} dataOverride={{ value: { sections: [], categories: [] } }} />;
+  const data = dataSrc && (dataSrc.value || dataSrc);
+  return <ModulePage moduleName="Menuisier" isAdmin={isAdmin} onHome={onHome} dataOverride={data} />;
 }

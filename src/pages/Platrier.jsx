@@ -1,6 +1,8 @@
 import React from "react";
 import ModulePage from "./ModulePage";
+import dataSrc from "../data/data.platrier";
 
 export default function Platrier({ isAdmin, onHome }) {
-  return <ModulePage moduleName="Plâtre" isAdmin={isAdmin} onHome={onHome} dataOverride={{ value: { sections: [], categories: [] } }} />;
+  const data = dataSrc && (dataSrc.value || dataSrc);
+  return <ModulePage moduleName="Plâtrier" isAdmin={isAdmin} onHome={onHome} dataOverride={data} />;
 }
