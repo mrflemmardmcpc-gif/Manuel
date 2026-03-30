@@ -109,49 +109,84 @@ module.exports = async function handler(req, res) {
     });
 
     try {
-      // If the client posted data in the request body, use it (and optionally persist to Upstash)
+      // If the client posted data in the request body, use it. Optionally a `module` field
+      // may be provided to target a module-specific file (src/data/data.<module>.js).
       let dataObj = null;
+      const moduleName = req.body && typeof req.body.module === 'string' && req.body.module ? String(req.body.module) : null;
+
+      const normalizeModuleName = (name) => {
+        try {
+          return String(name || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+        } catch (e) {
+          return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+      };
+
+      const upstashSet = ({ url, token, key, value }) => new Promise((resolve, reject) => {
+        try {
+          const payload = JSON.stringify(value);
+          const u = `${url.replace(/\/$/, '')}/set/${encodeURIComponent(key)}`;
+          const options = {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(payload)
+            }
+          };
+          const r = https.request(u, options, (res2) => {
+            let body = '';
+            res2.on('data', (c) => body += c);
+            res2.on('end', () => {
+              try { const j = JSON.parse(body); return resolve(j); } catch (e) { return resolve(body); }
+            });
+          });
+          r.on('error', reject);
+          r.write(payload);
+          r.end();
+        } catch (e) { reject(e); }
+      });
+
       if (req.body && Object.keys(req.body).length > 0 && req.body.data !== undefined) {
         dataObj = req.body.data;
-        // try to persist to Upstash so live admin store is updated
-        const upstashSet = ({ url, token, key, value }) => new Promise((resolve, reject) => {
-          try {
-            const payload = JSON.stringify(value);
-            const u = `${url.replace(/\/$/, '')}/set/${encodeURIComponent(key)}`;
-            const options = {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(payload)
-              }
-            };
-            const r = https.request(u, options, (res2) => {
-              let body = '';
-              res2.on('data', (c) => body += c);
-              res2.on('end', () => {
-                try { const j = JSON.parse(body); return resolve(j); } catch (e) { return resolve(body); }
-              });
-            });
-            r.on('error', reject);
-            r.write(payload);
-            r.end();
-          } catch (e) { reject(e); }
-        });
-
+        // If Upstash is configured, persist a module-scoped key when a module is provided,
+        // otherwise persist the default REDIS_KEY (legacy behaviour).
         try {
-          await upstashSet({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: REDIS_KEY, value: dataObj });
+          if (UPSTASH_URL && UPSTASH_TOKEN) {
+            const keyToUse = moduleName ? `${REDIS_KEY || 'carnet-data'}:${normalizeModuleName(moduleName)}` : (REDIS_KEY || 'carnet-data');
+            await upstashSet({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: keyToUse, value: dataObj });
+          }
         } catch (e) {
           console.warn('Failed to persist posted data to Upstash:', e && e.message ? e.message : e);
         }
       } else {
-        const rawValue = await getUpstash({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: REDIS_KEY });
+        // No body data: try to read from Upstash. If moduleName provided, prefer module-scoped key.
+        if (!UPSTASH_URL || !UPSTASH_TOKEN) {
+          return res.status(500).json({ error: 'Missing Upstash config in environment' });
+        }
+        const keyToRead = moduleName ? `${REDIS_KEY || 'carnet-data'}:${normalizeModuleName(moduleName)}` : (REDIS_KEY || 'carnet-data');
+        const rawValue = await getUpstash({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: keyToRead });
         try { dataObj = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue; } catch (e) { return res.status(500).json({ error: 'Upstash value is not valid JSON: ' + e.message }); }
       }
 
-      const newContent = `export default ${JSON.stringify(dataObj, null, 2)};\n`;
+      if (!dataObj || typeof dataObj !== 'object') return res.status(400).json({ error: 'No valid data to export' });
+
+      // Prepare exported object in the same shape the pages expect. If the payload already
+      // looks like a wrapper (has .value), keep it; otherwise wrap under `value` so pages
+      // that rely on dataSrc.value continue to work.
+      let fileExportObj = dataObj;
+      if (!dataObj.value && (dataObj.sections || dataObj.categories)) {
+        fileExportObj = { value: dataObj };
+      }
+
+      const newContent = `export default ${JSON.stringify(fileExportObj, null, 2)};\n`;
       const contentBase64 = Buffer.from(newContent, 'utf8').toString('base64');
-      const targetPath = 'src/data.structure.js';
+
+      const targetPath = moduleName ? `src/data/data.${normalizeModuleName(moduleName)}.js` : 'src/data.structure.js';
 
       // get existing file sha if exists
       const getResp = await githubGetFile({ owner, repo, path: targetPath, branch: ref, token: GITHUB_TOKEN });
@@ -165,7 +200,8 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      const putResp = await githubPutFile({ owner, repo, path: targetPath, branch: ref, token: GITHUB_TOKEN, message: 'Export carnet-data from Upstash Redis [auto]', contentBase64, sha });
+      const commitMessage = moduleName ? `Export module ${moduleName} [auto]` : 'Export carnet-data from Upstash Redis [auto]';
+      const putResp = await githubPutFile({ owner, repo, path: targetPath, branch: ref, token: GITHUB_TOKEN, message: commitMessage, contentBase64, sha });
       return res.status(200).json({ success: true, result: putResp });
     } catch (e) {
       return res.status(500).json({ error: e && e.message ? e.message : String(e) });
