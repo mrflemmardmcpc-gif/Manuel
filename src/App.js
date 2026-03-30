@@ -192,9 +192,10 @@ function App() {
     });
   };
 
-  // States and flow to confirm locking a module then push the modules config to the repo
+  // States and flow to confirm toggling a module's access and push the modules config to the repo
   const [showConfirmLockModal, setShowConfirmLockModal] = useState(false);
   const [pendingLockModule, setPendingLockModule] = useState(null);
+  const [pendingLockTarget, setPendingLockTarget] = useState(null); // true = locked (requiresAuth=true), false = unlocked
   const [lockPushStatus, setLockPushStatus] = useState('idle');
   const [lockPushMessage, setLockPushMessage] = useState('');
 
@@ -218,14 +219,16 @@ function App() {
   };
 
   const toggleRequiresAuth = (name) => {
-    // If admin is locking a module (making it inaccessible), prompt to save & push
-    const currently = modulesConfig && modulesConfig[name] && modulesConfig[name].requiresAuth;
-    if (isAdmin && !currently) {
+    // When admin toggles visibility, ask for confirmation (both lock and unlock)
+    const currently = modulesConfig && modulesConfig[name] && typeof modulesConfig[name].requiresAuth === 'boolean' ? modulesConfig[name].requiresAuth : !(name === 'Plombier' || name === 'Chauffagiste');
+    const target = !currently;
+    if (isAdmin) {
       setPendingLockModule(name);
+      setPendingLockTarget(target);
       setShowConfirmLockModal(true);
       return;
     }
-    // Otherwise just toggle locally
+    // Non-admin fallback (shouldn't normally happen): toggle locally
     saveModulesConfig(prev => ({ ...prev, [name]: { ...(prev[name] || {}), requiresAuth: !(prev[name]?.requiresAuth ?? false) } }));
   };
 
@@ -236,7 +239,7 @@ function App() {
     // compute next config
     let nextCfg = null;
     setModulesConfig(prev => {
-      const next = { ...prev, [pendingLockModule]: { ...(prev[pendingLockModule] || {}), requiresAuth: true } };
+      const next = { ...prev, [pendingLockModule]: { ...(prev[pendingLockModule] || {}), requiresAuth: pendingLockTarget } };
       try { localStorage.setItem(MODULES_CONFIG_KEY, JSON.stringify(next)); } catch (e) {}
       nextCfg = next;
       return next;
@@ -246,13 +249,14 @@ function App() {
       setLockPushStatus('done');
       setShowConfirmLockModal(false);
       setPendingLockModule(null);
+      setPendingLockTarget(null);
     } else {
       setLockPushStatus('error');
       setLockPushMessage(result && result.error ? result.error : 'Erreur lors du push');
     }
   };
 
-  const cancelLock = () => { setShowConfirmLockModal(false); setPendingLockModule(null); setLockPushStatus('idle'); setLockPushMessage(''); };
+  const cancelLock = () => { setShowConfirmLockModal(false); setPendingLockModule(null); setPendingLockTarget(null); setLockPushStatus('idle'); setLockPushMessage(''); };
 
   const handleClick = (module) => {
     setSelected(module.name);
@@ -497,8 +501,12 @@ function App() {
       {showConfirmLockModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }}>
           <div style={{ width: 520, maxWidth: '94%', background: '#241c3a', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
-            <h3 style={{ marginTop: 0, color: THEME.accent1 }}>Verrouiller le module</h3>
-            <p>Voulez‑vous rendre <strong>{pendingLockModule}</strong> inaccessible aux visiteurs ? Cela enregistrera la configuration et poussera automatiquement la mise à jour pour que l'accueil reflète ce changement.</p>
+            <h3 style={{ marginTop: 0, color: THEME.accent1 }}>{pendingLockTarget ? 'Verrouiller le module' : 'Déverrouiller le module'}</h3>
+            <p>{pendingLockTarget ? (
+              <>Voulez‑vous rendre <strong>{pendingLockModule}</strong> inaccessible aux visiteurs ? Cela enregistrera la configuration et poussera automatiquement la mise à jour pour que l'accueil reflète ce changement.</>
+            ) : (
+              <>Voulez‑vous rendre <strong>{pendingLockModule}</strong> accessible aux visiteurs ? Cela enregistrera la configuration et poussera automatiquement la mise à jour pour que l'accueil reflète ce changement.</>
+            )}</p>
             <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
               <button onClick={cancelLock} style={{ padding: '8px 12px', borderRadius: 8, background: 'transparent', color: 'white', border: '1px solid #666' }}>Annuler</button>
               <button onClick={confirmLockAndPush} style={{ padding: '8px 12px', borderRadius: 8, background: THEME.accent1, color: '#111', border: 'none' }}>{lockPushStatus === 'pending' ? 'Envoi...' : 'Enregistrer et publier'}</button>
