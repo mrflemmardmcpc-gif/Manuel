@@ -28,28 +28,79 @@ module.exports = async function handler(req, res) {
   const ref = process.env.WORKFLOW_REF || 'main';
 
   if (GITHUB_TOKEN && owner && repo) {
-    // Use native https.request to avoid depending on global fetch
-    const dispatchWorkflow = ({ owner, repo, workflow_id, ref, token }) => new Promise((resolve, reject) => {
-      const payload = JSON.stringify({ ref });
+    // Try to fetch Upstash key here (allow alternate env names KV_REST_API_...)
+    const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+    const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+    const REDIS_KEY = process.env.REDIS_KEY || 'carnet-data';
+
+    if (!UPSTASH_URL || !UPSTASH_TOKEN) {
+      return res.status(500).json({ error: 'Missing Upstash config in environment' });
+    }
+
+    const getUpstash = ({ url, token, key }) => new Promise((resolve, reject) => {
+      const reqUrl = `${url.replace(/\/$/, '')}/get/${encodeURIComponent(key)}`;
+      const opts = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+      https.get(reqUrl, opts, (r) => {
+        let body = '';
+        r.on('data', (c) => body += c);
+        r.on('end', () => {
+          try {
+            const json = JSON.parse(body);
+            if (json && (json.result !== undefined)) return resolve(json.result);
+            return reject(new Error('No result field in Upstash response'));
+          } catch (e) {
+            return reject(e);
+          }
+        });
+      }).on('error', reject);
+    });
+
+    const githubGetFile = ({ owner, repo, path, branch, token }) => new Promise((resolve, reject) => {
       const options = {
-        method: 'POST',
+        method: 'GET',
         hostname: 'api.github.com',
-        path: `/repos/${owner}/${repo}/actions/workflows/${workflow_id}/dispatches`,
+        path: `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`,
+        headers: {
+          'User-Agent': 'lemanuel-exporter',
+          'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`
+        }
+      };
+      const req = https.request(options, (r) => {
+        let body = '';
+        r.on('data', (c) => body += c);
+        r.on('end', () => {
+          if (r.statusCode === 200) return resolve({ status: r.statusCode, body });
+          if (r.statusCode === 404) return resolve({ status: r.statusCode });
+          return reject(new Error(`GitHub GET ${r.statusCode}: ${body}`));
+        });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+
+    const githubPutFile = ({ owner, repo, path, branch, token, message, contentBase64, sha }) => new Promise((resolve, reject) => {
+      const payload = JSON.stringify(Object.assign({ message, content: contentBase64, branch }, sha ? { sha } : {}));
+      const options = {
+        method: 'PUT',
+        hostname: 'api.github.com',
+        path: `/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
         headers: {
           'User-Agent': 'lemanuel-exporter',
           'Accept': 'application/vnd.github+json',
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
+          'Content-Length': Buffer.byteLength(payload)
         }
       };
-
       const req = https.request(options, (r) => {
         let body = '';
         r.on('data', (c) => body += c);
         r.on('end', () => {
           if (r.statusCode >= 200 && r.statusCode < 300) return resolve({ status: r.statusCode, body });
-          return reject(new Error(`GitHub API ${r.statusCode}: ${body}`));
+          return reject(new Error(`GitHub PUT ${r.statusCode}: ${body}`));
         });
       });
       req.on('error', reject);
@@ -58,10 +109,30 @@ module.exports = async function handler(req, res) {
     });
 
     try {
-      await dispatchWorkflow({ owner, repo, workflow_id, ref, token: GITHUB_TOKEN });
-      return res.status(200).json({ success: true, message: 'Workflow dispatched' });
+      const rawValue = await getUpstash({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: REDIS_KEY });
+      let dataObj;
+      try { dataObj = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue; } catch (e) { return res.status(500).json({ error: 'Upstash value is not valid JSON: ' + e.message }); }
+
+      const newContent = `export default ${JSON.stringify(dataObj, null, 2)};\n`;
+      const contentBase64 = Buffer.from(newContent, 'utf8').toString('base64');
+      const targetPath = 'src/data.structure.js';
+
+      // get existing file sha if exists
+      const getResp = await githubGetFile({ owner, repo, path: targetPath, branch: ref, token: GITHUB_TOKEN });
+      let sha;
+      if (getResp && getResp.status === 200) {
+        try {
+          const meta = JSON.parse(getResp.body);
+          sha = meta.sha;
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      const putResp = await githubPutFile({ owner, repo, path: targetPath, branch: ref, token: GITHUB_TOKEN, message: 'Export carnet-data from Upstash Redis [auto]', contentBase64, sha });
+      return res.status(200).json({ success: true, result: putResp });
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      return res.status(500).json({ error: e && e.message ? e.message : String(e) });
     }
   }
 
