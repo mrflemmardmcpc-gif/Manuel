@@ -1,6 +1,6 @@
 const { exec } = require('child_process');
 
-module.exports = function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
   const ADMIN_KEY = process.env.ADMIN_KEY;
