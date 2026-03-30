@@ -2,6 +2,7 @@ import React from 'react';
 
 
 import './App.css';
+import modulesConfigSrc from './data/data.modulesconfig';
 import { MdPlumbing, MdFireExtinguisher, MdConstruction, MdFormatPaint, MdLock, MdLockOpen } from 'react-icons/md';
 import { FaHardHat, FaRulerCombined, FaFire, FaBrush, FaWindowRestore, FaWater, FaBolt, FaTools } from 'react-icons/fa';
 import { useState, useEffect, useRef } from 'react';
@@ -156,6 +157,24 @@ function App() {
     } catch (e) {
       // ignore
     }
+
+    // Fallback to bundled config file if present
+    try {
+      const src = modulesConfigSrc && (modulesConfigSrc.value || modulesConfigSrc);
+      if (src && typeof src === 'object') {
+        const normalized = {};
+        modules.forEach(m => {
+          const p = src && src[m.name];
+          normalized[m.name] = {
+            requiresAuth: (p && typeof p.requiresAuth === 'boolean') ? p.requiresAuth : !(m.name === 'Plombier' || m.name === 'Chauffagiste')
+          };
+        });
+        return normalized;
+      }
+    } catch (e) {
+      // ignore
+    }
+
     const defaults = {};
     modules.forEach(m => {
       defaults[m.name] = {
@@ -173,9 +192,67 @@ function App() {
     });
   };
 
+  // States and flow to confirm locking a module then push the modules config to the repo
+  const [showConfirmLockModal, setShowConfirmLockModal] = useState(false);
+  const [pendingLockModule, setPendingLockModule] = useState(null);
+  const [lockPushStatus, setLockPushStatus] = useState('idle');
+  const [lockPushMessage, setLockPushMessage] = useState('');
+
+  const pushModulesConfigToServer = async (cfg) => {
+    try {
+      const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: 'modulesconfig', data: cfg }) });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || 'Export failed');
+      }
+      // trigger publish
+      try {
+        await fetch('/api/publish', { method: 'POST' });
+      } catch (e) {
+        // ignore publish errors, the export already wrote the file
+      }
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e && e.message ? e.message : String(e) };
+    }
+  };
+
   const toggleRequiresAuth = (name) => {
+    // If admin is locking a module (making it inaccessible), prompt to save & push
+    const currently = modulesConfig && modulesConfig[name] && modulesConfig[name].requiresAuth;
+    if (isAdmin && !currently) {
+      setPendingLockModule(name);
+      setShowConfirmLockModal(true);
+      return;
+    }
+    // Otherwise just toggle locally
     saveModulesConfig(prev => ({ ...prev, [name]: { ...(prev[name] || {}), requiresAuth: !(prev[name]?.requiresAuth ?? false) } }));
   };
+
+  const confirmLockAndPush = async () => {
+    if (!pendingLockModule) return;
+    setLockPushStatus('pending');
+    setLockPushMessage('');
+    // compute next config
+    let nextCfg = null;
+    setModulesConfig(prev => {
+      const next = { ...prev, [pendingLockModule]: { ...(prev[pendingLockModule] || {}), requiresAuth: true } };
+      try { localStorage.setItem(MODULES_CONFIG_KEY, JSON.stringify(next)); } catch (e) {}
+      nextCfg = next;
+      return next;
+    });
+    const result = await pushModulesConfigToServer(nextCfg);
+    if (result && result.success) {
+      setLockPushStatus('done');
+      setShowConfirmLockModal(false);
+      setPendingLockModule(null);
+    } else {
+      setLockPushStatus('error');
+      setLockPushMessage(result && result.error ? result.error : 'Erreur lors du push');
+    }
+  };
+
+  const cancelLock = () => { setShowConfirmLockModal(false); setPendingLockModule(null); setLockPushStatus('idle'); setLockPushMessage(''); };
 
   const handleClick = (module) => {
     setSelected(module.name);
@@ -417,6 +494,20 @@ function App() {
           })}
         </div>
       </header>
+      {showConfirmLockModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }}>
+          <div style={{ width: 520, maxWidth: '94%', background: '#241c3a', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+            <h3 style={{ marginTop: 0, color: THEME.accent1 }}>Verrouiller le module</h3>
+            <p>Voulez‑vous rendre <strong>{pendingLockModule}</strong> inaccessible aux visiteurs ? Cela enregistrera la configuration et poussera automatiquement la mise à jour pour que l'accueil reflète ce changement.</p>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+              <button onClick={cancelLock} style={{ padding: '8px 12px', borderRadius: 8, background: 'transparent', color: 'white', border: '1px solid #666' }}>Annuler</button>
+              <button onClick={confirmLockAndPush} style={{ padding: '8px 12px', borderRadius: 8, background: THEME.accent1, color: '#111', border: 'none' }}>{lockPushStatus === 'pending' ? 'Envoi...' : 'Enregistrer et publier'}</button>
+            </div>
+            {lockPushStatus === 'error' && <div style={{ marginTop: 10, color: '#f87171' }}>{lockPushMessage}</div>}
+            {lockPushStatus === 'done' && <div style={{ marginTop: 10, color: '#10b981' }}>Configuration enregistrée et poussée.</div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
