@@ -171,8 +171,24 @@ module.exports = async function handler(req, res) {
       if (req.body && Object.keys(req.body).length > 0 && req.body.data !== undefined) {
         dataObj = req.body.data;
         // If client serialized `data` as a JSON string, try to parse it.
+        // Attempt to parse string payloads, including double-encoded JSON strings
         if (typeof dataObj === 'string') {
-          try { dataObj = JSON.parse(dataObj); } catch (e) { /* keep as string */ }
+          try {
+            let parsed = dataObj;
+            let lastParsed = null;
+            // keep parsing while the value is a JSON string
+            while (typeof parsed === 'string' && parsed !== lastParsed) {
+              lastParsed = parsed;
+              try {
+                parsed = JSON.parse(parsed);
+              } catch (e) {
+                break;
+              }
+            }
+            dataObj = parsed;
+          } catch (e) {
+            // keep as string if parsing fails
+          }
         }
         // If Upstash is configured, persist a module-scoped key when a module is provided,
         // otherwise persist the default REDIS_KEY (legacy behaviour).
@@ -196,7 +212,7 @@ module.exports = async function handler(req, res) {
 
       // debug info for tracing why data may be invalid
       try {
-        console.log('[export-push] module=', moduleName, 'bodyKeys=', req.body ? Object.keys(req.body) : null, 'typeof_data=', typeof dataObj, 'isArray=', Array.isArray(dataObj));
+        console.log('[export-push] module=', moduleName, 'bodyKeys=', req.body ? Object.keys(req.body) : null, 'typeof_data=', typeof dataObj, 'isArray=', Array.isArray(dataObj), 'sample=', (typeof dataObj === 'object' ? Object.keys(dataObj).slice(0,5) : String(dataObj).slice(0,200)) );
       } catch (e) { /* ignore logging errors */ }
       if (!dataObj || (typeof dataObj !== 'object' && !Array.isArray(dataObj))) return res.status(400).json({ error: 'No valid data to export' });
 
