@@ -7,67 +7,19 @@ import FullEditorPage from "../modals/FullEditorPage";
 import mainTheme from "../theme/theme";
 import "../AppTiptap.css";
 
-export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Module', dataOverride = null, onDirtyChange = null }) {
+export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Module', dataOverride = null, onDirtyChange = null, exportRef = null }) {
   const moduleKey = (moduleName || 'Module').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-  const rawKey = `module_${moduleKey}`;
-  const STORAGE_KEY = `${rawKey}_v1`;
-  const treeKey = `module_${(moduleName || 'Module').replace(/\s/g, '')}`;
   const initial = dataOverride ? (dataOverride.value || dataOverride) : { sections: [], categories: [] };
   const baseSnapshotRef = React.useRef(JSON.stringify(initial));
   const [isDirty, setIsDirty] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [data, setData] = useState(initial);
 
+  // Do NOT persist module edits to localStorage anymore. Always start from bundled `dataOverride`.
   useEffect(() => {
     try {
-      const initialData = initial;
-
-      let persisted = null;
-      const rawStored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(rawKey);
-      if (rawStored) {
-        try {
-          const parsed = JSON.parse(rawStored);
-          if (parsed && (Array.isArray(parsed.sections) || Array.isArray(parsed.categories))) {
-            persisted = parsed;
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      if (persisted) {
-        setData(persisted);
-        console.log(`[ModulePage:${moduleName}] Loaded persisted data from localStorage`);
-      } else {
-        setData(initialData);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-          try { localStorage.setItem(rawKey, JSON.stringify(initialData)); } catch (e) {}
-          const convertToTree = (src) => {
-            try {
-              const sections = Array.isArray(src.sections) ? src.sections : (src.value && Array.isArray(src.value.sections) ? src.value.sections : []);
-              const categories = Array.isArray(src.categories) ? src.categories : (src.value && Array.isArray(src.value.categories) ? src.value.categories : []);
-              return sections.map(sec => {
-                const cats = categories.filter(c => c.sectionId === sec.id).map(cat => ({
-                  name: cat.name || '',
-                  catId: cat.id,
-                  children: (Array.isArray(cat.subs) ? cat.subs : []).map(s => ({
-                    name: s.title || s.id || '',
-                    title: s.title || '',
-                    content: s.text || '',
-                    id: s.id,
-                  }))
-                }));
-                return { name: sec.name || '', children: cats };
-              });
-            } catch (e) { return []; }
-          };
-          try { localStorage.setItem(treeKey, JSON.stringify(convertToTree(initialData))); } catch (e) {}
-          console.log(`[ModulePage:${moduleName}] Bundled data persisted to localStorage for first-time use`);
-        } catch (e) {
-          console.error(`[ModulePage:${moduleName}] Failed to persist bundled data:`, e);
-        }
-      }
+      setData(initial);
+      baseSnapshotRef.current = JSON.stringify(initial);
     } catch (e) {
       console.error(`[ModulePage:${moduleName}] Error while initializing data:`, e);
     }
@@ -76,36 +28,6 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
   const updateData = (updater) => {
     setData(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        try { localStorage.setItem(rawKey, JSON.stringify(next)); } catch (e) {}
-        try {
-          const convertToTree = (src) => {
-            try {
-              const sections = Array.isArray(src.sections) ? src.sections : [];
-              const categories = Array.isArray(src.categories) ? src.categories : [];
-              return sections.map(sec => {
-                const cats = categories.filter(c => c.sectionId === sec.id).map(cat => ({
-                  name: cat.name || '',
-                  catId: cat.id,
-                  children: (Array.isArray(cat.subs) ? cat.subs : []).map(s => ({
-                    name: s.title || s.id || '',
-                    title: s.title || '',
-                    content: s.text || '',
-                    id: s.id,
-                  }))
-                }));
-                return { name: sec.name || '', children: cats };
-              });
-            } catch (e) { return []; }
-          };
-          const tree = convertToTree(next);
-          localStorage.setItem(treeKey, JSON.stringify(tree));
-        } catch (e) {}
-        console.log(`[ModulePage:${moduleName}] persisted data to localStorage keys:`, STORAGE_KEY, rawKey, treeKey);
-      } catch (e) {
-        console.error(`Failed to persist ${moduleName} data:`, e);
-      }
       // detect dirty state compared to original bundled data
       try {
         const snap = JSON.stringify(next || {});
@@ -118,6 +40,15 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
       return next;
     });
   };
+
+  // expose current data to parent via exportRef so App can POST it when pushing
+  useEffect(() => {
+    try {
+      if (exportRef) {
+        exportRef.current = () => data;
+      }
+    } catch (e) {}
+  }, [exportRef, data]);
 
   // warn on unload if admin and dirty
   useEffect(() => {

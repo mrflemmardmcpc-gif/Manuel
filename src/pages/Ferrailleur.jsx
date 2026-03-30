@@ -2,7 +2,7 @@ import React from "react";
 import ModulePage from "./ModulePage";
 import dataSrc from "../data/data.ferrailleur";
 
-export default function Ferrailleur({ isAdmin, onHome }) {
+export default function Ferrailleur(props) {
   const data = dataSrc && (dataSrc.value || dataSrc);
-  return <ModulePage moduleName="Ferrailleur" isAdmin={isAdmin} onHome={onHome} dataOverride={data} />;
+  return <ModulePage {...props} moduleName="Ferrailleur" dataOverride={data} />;
 }

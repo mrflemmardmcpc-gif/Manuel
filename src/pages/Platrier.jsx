@@ -2,7 +2,7 @@ import React from "react";
 import ModulePage from "./ModulePage";
 import dataSrc from "../data/data.platrier";
 
-export default function Platrier({ isAdmin, onHome }) {
+export default function Platrier(props) {
   const data = dataSrc && (dataSrc.value || dataSrc);
-  return <ModulePage moduleName="Plâtrier" isAdmin={isAdmin} onHome={onHome} dataOverride={data} />;
+  return <ModulePage {...props} moduleName="Platrier" dataOverride={data} />;
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import './App.css';
 import { MdPlumbing, MdFireExtinguisher, MdConstruction, MdFormatPaint, MdLock, MdLockOpen } from 'react-icons/md';
 import { FaHardHat, FaRulerCombined, FaFire, FaBrush, FaWindowRestore, FaWater, FaBolt, FaTools } from 'react-icons/fa';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CubeButton, LoginModal } from './ui';
 import Plombier from './pages/Plombier';
 import Chauffagiste from './pages/Chauffagiste';
@@ -136,6 +136,7 @@ function App() {
   const [showConfirmPushModal, setShowConfirmPushModal] = useState(false);
   const [pushStatus, setPushStatus] = useState('idle'); // 'idle'|'pending'|'done'|'error'
   const [pushMessage, setPushMessage] = useState('');
+  const exportRef = useRef(null);
 
   const MODULES_CONFIG_KEY = 'modules_config_v1';
   const [modulesConfig, setModulesConfig] = useState(() => {
@@ -221,12 +222,21 @@ function App() {
 
         let bodyPayload = null;
         try {
-          const storageKey = computeStorageKey(selected);
-          const raw = storageKey ? (localStorage.getItem(storageKey) || localStorage.getItem(`module_${selected}`)) : null;
-          if (raw) {
-            try { bodyPayload = JSON.parse(raw); } catch (e) { bodyPayload = raw; }
+          // Prefer current in-memory editor data via exportRef (ModulePage sets exportRef.current = () => data)
+          if (exportRef && exportRef.current && typeof exportRef.current === 'function') {
+            bodyPayload = exportRef.current();
           }
         } catch (e) { bodyPayload = null; }
+        // fallback to legacy localStorage (if present)
+        if (!bodyPayload) {
+          try {
+            const storageKey = computeStorageKey(selected);
+            const raw = storageKey ? (localStorage.getItem(storageKey) || localStorage.getItem(`module_${selected}`)) : null;
+            if (raw) {
+              try { bodyPayload = JSON.parse(raw); } catch (e) { bodyPayload = raw; }
+            }
+          } catch (e) { bodyPayload = null; }
+        }
 
         // Call server endpoint with current module data (if available)
         const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: selected, data: bodyPayload }) });
@@ -269,21 +279,21 @@ function App() {
     };
 
     const pages = {
-      'Plombier': <Plombier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Chauffagiste': <Chauffagiste isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Maçon': <Macon isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Couvreur': <Couvreur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Menuisier': <Menuisier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Électricien': <Electricien isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Peintre': <Peintre isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Carreleur': <Carreleur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Plâtrier': <Platrier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Étancheur': <Etancheur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Charpentier': <Charpentier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Dessinateur': <Dessinateur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Serrurier': <Serrurier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Ferrailleur': <Ferrailleur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Calorifugeur': <Calorifugeur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Plombier': <Plombier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Chauffagiste': <Chauffagiste exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Maçon': <Macon exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Couvreur': <Couvreur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Menuisier': <Menuisier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Électricien': <Electricien exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Peintre': <Peintre exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Carreleur': <Carreleur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Plâtrier': <Platrier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Étancheur': <Etancheur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Charpentier': <Charpentier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Dessinateur': <Dessinateur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Serrurier': <Serrurier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Ferrailleur': <Ferrailleur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Calorifugeur': <Calorifugeur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
     };
     return (
       <>
