@@ -106,10 +106,7 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
   const [darkMode, setDarkMode] = useState(true);
   const [showGallery, setShowGallery] = useState(false);
 
-  // Live-sync for admins: poll Upstash for remote changes and show/apply them
-  const [remoteChanged, setRemoteChanged] = useState(false);
-  const [remotePreview, setRemotePreview] = useState(null);
-  const [showRemotePreviewModal, setShowRemotePreviewModal] = useState(false);
+  // Live-sync for admins: poll Upstash for remote changes and apply them live
   const lastLocalSnapRef = useRef(JSON.stringify(data || {}));
   const lastRemoteSnapRef = useRef(baseSnapshotRef.current || '');
   const mergedBaseRef = useRef(baseSnapshotRef.current || '');
@@ -244,14 +241,12 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         const remoteSnap = JSON.stringify(remoteVal || {});
         if (remoteSnap !== lastRemoteSnapRef.current) {
           lastRemoteSnapRef.current = remoteSnap;
-          // perform a three-way merge (base = mergedBaseRef)
           try {
             const baseObj = mergedBaseRef.current ? JSON.parse(mergedBaseRef.current) : {};
             const localObj = data || {};
             const remoteObj = remoteVal || {};
             const mergeResult = threeWayMerge(baseObj, localObj, remoteObj) || {};
             const merged = mergeResult.merged || null;
-            const mergeConflicts = mergeResult.conflicts || [];
             if (merged) {
               suppressAutosaveRef.current = true;
               try { updateData(merged); } catch (e) { setData(merged); }
@@ -260,27 +255,13 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
               mergedBaseRef.current = JSON.stringify(merged);
               lastLocalSnapRef.current = JSON.stringify(merged);
             }
-            if (mergeConflicts && mergeConflicts.length) {
-              setConflicts(mergeConflicts);
-              setRemoteChanged(true);
-              setRemotePreview(null);
-            } else {
-              setConflicts([]);
-              setRemoteChanged(false);
-              setRemotePreview(null);
-            }
           } catch (e) {
-            // fallback to previous behavior
+            // fallback: if merging fails, apply remote when safe
             if (remoteSnap !== lastLocalSnapRef.current) {
               if (!isDirty) {
                 try { baseSnapshotRef.current = remoteSnap; } catch (e) {}
                 try { updateData(remoteVal || {}); } catch (e) { setData(remoteVal || {}); }
                 try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {}
-                setRemoteChanged(false);
-                setRemotePreview(null);
-              } else {
-                setRemotePreview(remoteVal || {});
-                setRemoteChanged(true);
               }
             }
           }
@@ -295,68 +276,7 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     return () => { stopped = true; if (timer) clearInterval(timer); };
   }, [isAdmin, moduleName, isDirty]);
 
-  // Conflict resolution helpers
-  const applyRemoteEntity = async (conflict) => {
-    try {
-      if (!conflict) return;
-      suppressAutosaveRef.current = true;
-      updateData(prev => {
-        if (conflict.type === 'category') {
-          const cats = (prev.categories || []).map(c => c.id === conflict.id ? (conflict.remote ? deepClone(conflict.remote) : c) : c);
-          if (!cats.some(c => c.id === conflict.id) && conflict.remote) cats.push(deepClone(conflict.remote));
-          return { ...prev, categories: cats };
-        }
-        if (conflict.type === 'sub') {
-          const cats = (prev.categories || []).map(cat => {
-            if (cat.id === conflict.categoryId) {
-              const subs = (cat.subs || []).map(s => s.id === conflict.id ? (conflict.remote ? deepClone(conflict.remote) : s) : s);
-              if (!subs.some(s => s.id === conflict.id) && conflict.remote) subs.push(deepClone(conflict.remote));
-              return { ...cat, subs };
-            }
-            return cat;
-          });
-          return { ...prev, categories: cats };
-        }
-        return prev;
-      });
-      suppressAutosaveRef.current = false;
-      setConflicts(prev => prev.filter(c => !(c.type === conflict.type && c.id === conflict.id && (c.categoryId || null) === (conflict.categoryId || null))));
-      if (!conflicts || conflicts.length <= 1) setRemoteChanged(false);
-    } catch (e) {
-      suppressAutosaveRef.current = false;
-    }
-  };
-
-  const keepLocalEntity = (conflict) => {
-    setConflicts(prev => prev.filter(c => !(c.type === conflict.type && c.id === conflict.id && (c.categoryId || null) === (conflict.categoryId || null))));
-    if (!conflicts || conflicts.length <= 1) setRemoteChanged(false);
-  };
-
-  const acceptAllRemote = async () => {
-    try {
-      const q = encodeURIComponent(moduleName || '');
-      const res = await fetch('/api/export-get?module=' + q, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-      if (!res.ok) return;
-      const json = await res.json();
-      if (!json || !json.success) return;
-      let remoteVal = json.data;
-      if (remoteVal && remoteVal.value && (remoteVal.value.sections || remoteVal.value.categories)) remoteVal = remoteVal.value;
-      if (typeof remoteVal === 'string') {
-        try { remoteVal = JSON.parse(remoteVal); } catch (e) {}
-      }
-      suppressAutosaveRef.current = true;
-      try { updateData(remoteVal || {}); } catch (e) { setData(remoteVal || {}); }
-      suppressAutosaveRef.current = false;
-      mergedBaseRef.current = JSON.stringify(remoteVal || {});
-      setConflicts([]);
-      setRemoteChanged(false);
-    } catch (e) {}
-  };
-
-  const keepAllLocal = () => {
-    setConflicts([]);
-    setRemoteChanged(false);
-  };
+  
 
   const [editingSubId, setEditingSubId] = useState(null);
   const [addingSubToCatId, setAddingSubToCatId] = useState(null);
