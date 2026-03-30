@@ -43,7 +43,7 @@ export default {
           {
             "id": 206,
             "title": "Pattes à vis - Types et dimensioning",
-            "text": "<p><span style=\"color: rgb(90, 114, 190); font-size: 22px;\"><strong><u>Pattes à vis métal</u></strong></span></p><p><span style=\"color: rgb(59, 81, 221); font-size: 18px;\"><strong>Adaptées aux chevilles métalliques</strong></span></p><p><span style=\"color: rgb(196, 201, 79); font-size: 20px;\">Ø5 ou Ø6</span></p><p>Longueurs jusqu'à 70 mm</p><p>Support : Cloisons, placos</p><p></p><p><span style=\"color: rgb(59, 81, 221); font-size: 18px;\"><strong>Règles de vissage minimum</strong></span></p><p>🔹 Cheville plastique : 30 mm minimum</p><p>🔹 Bois tendre : 20 mm minimum</p><p>🔹 Bois dur : 10 mm minimum</p><p></p><p><span style=\"color: rgb(248, 33, 57); font-size: 18px;\"><strong>À respecter impérativement</strong></span></p><p><span style=\"color: rgb(219, 149, 61);\">Insuffisant = arrachement garanti</span></p>",
+            "text": "<p><span style=\"color: rgb(90, 114, 190); font-size: 22px;\"><strong><u>Pattes à vis métal</u></strong></span></p><p><span style=\"color: rgb(59, 81, 221); font-size: 18px;\"><strong>Adaptées aux chevilles métalliques</strong></span></p><p><span style=\"font-size: 16px;\">Ø5 ou Ø6</span></p><p>Longueurs jusqu'à 70 mm</p><p>Support : Cloisons, placos</p><p></p><p><span style=\"color: rgb(59, 81, 221); font-size: 18px;\"><strong>Règles de vissage minimum</strong></span></p><p>🔹 Cheville plastique : 30 mm minimum</p><p>🔹 Bois tendre : 20 mm minimum</p><p>🔹 Bois dur : 10 mm minimum</p><p></p><p><span style=\"color: rgb(248, 33, 57); font-size: 18px;\"><strong>À respecter impérativement</strong></span></p><p><span style=\"color: rgb(219, 149, 61);\">Insuffisant = arrachement garanti</span></p>",
             "color": "#8a96a8",
             "images": [
               {
@@ -64,7 +64,7 @@ export default {
           {
             "id": 301,
             "title": "Sécurité électrique - Appareils électroportatifs",
-            "text": "<p></p><p>⚠️ Plus de <span style=\"color: rgb(251, 191, 36);\">1 000 accidents</span> électriques par an en France, dont ~20 mortels.</p><p></p><p>💡 Vérifier l'état général des appareils et rallonges en 230V.</p><p>⚡ 50V en milieu sec peut être létal, 25V en milieu humide.</p><p></p><p><span style=\"color: rgb(219, 149, 61);\">Prévention essentielle</span> : <span style=\"color: rgb(248, 33, 57);\">Utiliser disjoncteur différentiel et équipement personnel.</span></p>",
+            "text": "<p></p><p>⚠️ Plus de <span style=\"color: rgb(251, 191, 36); font-size: 20px;\">1 000</span><span style=\"color: rgb(251, 191, 36);\"> accidents</span> électriques par an en France, dont ~20 mortels.</p><p></p><p>💡 Vérifier l'état général des appareils et rallonges en 230V.</p><p>⚡ 50V en milieu sec peut être létal, 25V en milieu humide.</p><p></p><p><span style=\"color: rgb(219, 149, 61);\">Prévention essentielle</span> : <span style=\"color: rgb(248, 33, 57);\">Utiliser disjoncteur différentiel et équipement personnel.</span></p>",
             "color": "#cffafe",
             "image": null
           },
@@ -129,28 +129,6 @@ export default {
         ]
       },
       {
-        "name": "Évacuation",
-        "icon": "🚽",
-        "sectionId": 4,
-        "color": "#8b5cf6",
-        "subs": [
-          {
-            "id": 401,
-            "title": "PVC, PP, Cuivre",
-            "text": "<p></p><p>Choisir le matériau selon type d'eau, pression et norme.</p><p></p><p>🔹<span style=\"color: rgb(90, 171, 190);\"><u>PVC</u></span>: Économique, usage courant</p><p>🔹<span style=\"color: rgb(119, 73, 208);\"><u>PP</u></span> : Meilleure résistance chimique</p><p>🔹<span style=\"color: rgb(198, 95, 82);\"><u>Cuivre</u></span> : Durabilité maximale, haut de gamme</p>",
-            "color": "#ddd6fe",
-            "image": null
-          },
-          {
-            "id": 402,
-            "title": "Pentes et diamètres",
-            "text": "<p>💡 **Maintenir pente correcte pour écoulement naturel et éviter bouchons**.</p><p></p><p>Pentes recommandées :</p><p>- Eaux usées : 2-3% minimum</p><p>- Eaux pluviales : 0,5-1%</p><p>- Collecteurs : 1-2% </p><p></p><p>Diamètres courants :</p><p>- Lavabo : 32 mm</p><p>- Douche/Baignoire : 40 mm</p><p>- WC : 100 mm</p>",
-            "color": "#ddd6fe",
-            "image": null
-          }
-        ]
-      },
-      {
         "id": 5,
         "name": "Appareils et Outils - Perforateurs",
         "icon": "⚙️",
@@ -167,7 +145,7 @@ export default {
           {
             "id": 502,
             "title": "Perforateur SDS+ 2 modes 18V - Complet",
-            "text": "<p>🔧 **Perçages bois, métal, céramique, béton.**<br><br>**Fiche technique complète :**</p><table style=\"min-width: 50px;\"><colgroup><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"></colgroup><tbody><tr><th colspan=\"1\" rowspan=\"1\"><p>Caractéristique</p></th><th colspan=\"1\" rowspan=\"1\"><p>Valeur</p></th></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Voltage</p></td><td colspan=\"1\" rowspan=\"1\"><p>18 V</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Batterie</p></td><td colspan=\"1\" rowspan=\"1\"><p>3.0 Ah NiMH</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Puissance utile</p></td><td colspan=\"1\" rowspan=\"1\"><p>300 W</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Vitesse à vide</p></td><td colspan=\"1\" rowspan=\"1\"><p>0-1100 tr/min</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Coups/min</p></td><td colspan=\"1\" rowspan=\"1\"><p>0-4200 cps/min</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Capacité perçage Bois</p></td><td colspan=\"1\" rowspan=\"1\"><p>30 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Capacité perçage Métal</p></td><td colspan=\"1\" rowspan=\"1\"><p>13 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Capacité perçage Béton</p></td><td colspan=\"1\" rowspan=\"1\"><p>20 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Poids</p></td><td colspan=\"1\" rowspan=\"1\"><p>3,1 kg</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Longueur</p></td><td colspan=\"1\" rowspan=\"1\"><p>295 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Hauteur</p></td><td colspan=\"1\" rowspan=\"1\"><p>195 mm</p></td></tr></tbody></table><p>**Équipements de confort :**</p><p>✔️ Poignée caoutchoutée limite vibrations</p><p>*✔️ Moteur avec frein électronique</p><p>✔️ Anti-vibration active</p><p>✔️ Équilibrage arrière</p><p>✔️ Changement rapide outil SDS+</p><p>Avant utilisation :</p><p>⚠️ Vérifier batterie chargée</p><p>⚠️ Vérifier foret bien fixé</p><p>⚠️ Porter EPI (lunettes, gants)</p><p>⚠️ Utiliser poignée latérale en percussion</p>",
+            "text": "<p>🔧 **Perçages bois, métal, céramique, béton.**<br><br>**Fiche technique complète :**</p><table style=\"min-width: 50px;\"><colgroup><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"></colgroup><tbody><tr><th colspan=\"1\" rowspan=\"1\"><p>Caractéristique</p></th><th colspan=\"1\" rowspan=\"1\"><p>Valeur</p></th></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Voltage</p></td><td colspan=\"1\" rowspan=\"1\"><p>18 V</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Batterie</p></td><td colspan=\"1\" rowspan=\"1\"><p>3.0 Ah NiMH</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Puissance utile</p></td><td colspan=\"1\" rowspan=\"1\"><p>300 W</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Vitesse à vide</p></td><td colspan=\"1\" rowspan=\"1\"><p>0-1100 tr/min</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Coups/min</p></td><td colspan=\"1\" rowspan=\"1\"><p>0-4200 cps/min</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Capacité perçage Bois</p></td><td colspan=\"1\" rowspan=\"1\"><p>30 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Capacité perçage Métal</p></td><td colspan=\"1\" rowspan=\"1\"><p>13 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Capacité perçage Béton</p></td><td colspan=\"1\" rowspan=\"1\"><p>20 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Poids</p></td><td colspan=\"1\" rowspan=\"1\"><p>3,1 kg</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Longueur</p></td><td colspan=\"1\" rowspan=\"1\"><p>295 mm</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>Hauteur</p></td><td colspan=\"1\" rowspan=\"1\"><p>195 mm</p></td></tr></tbody></table><p>**Équipements de confort :**</p><p>✔️ Poignée caoutchoutée limite vibrations</p><p>*��️ Moteur avec frein électronique</p><p>✔️ Anti-vibration active</p><p>✔️ Équilibrage arrière</p><p>✔️ Changement rapide outil SDS+</p><p>Avant utilisation :</p><p>⚠️ Vérifier batterie chargée</p><p>⚠️ Vérifier foret bien fixé</p><p>⚠️ Porter EPI (lunettes, gants)</p><p>⚠️ Utiliser poignée latérale en percussion</p>",
             "color": "#fed7aa",
             "image": null
           },
@@ -637,7 +615,7 @@ export default {
           {
             "id": 95602,
             "title": "Raccordements & LOR",
-            "text": "<p>🔗 Raccords rapides LOR : femelle en attente, mâle côté chalumeau</p><p>🛑 Versions STOP-GAZ (coupure auto + clapet) complémentaires aux clapets anti-retour</p><p>👉 Ø différents évitent inversion O₂/C₂H₂</p><p>Rappel : clapet anti-retour indispensable au détendeur et au chalumeau si &gt;20 m de flexible.</p>",
+            "text": "<p>🔗 Raccords rapides LOR : femelle en attente, mâle côté chalumeau</p><p>🛑 Versions STOP-GAZ (coupure auto + clapet) compl��mentaires aux clapets anti-retour</p><p>👉 Ø différents évitent inversion O₂/C₂H₂</p><p>Rappel : clapet anti-retour indispensable au détendeur et au chalumeau si &gt;20 m de flexible.</p>",
             "color": "#ffedd5",
             "image": null
           }
@@ -784,6 +762,28 @@ export default {
             "title": "Bâti-supports",
             "text": "<p>Adossé ou autoportant pour lavabos, bidets, WC suspendus.</p><p>Fixation sur murs pleins ou cloisons selon modèles (plaque plâtre ossature métal : privilégier autoportant).</p><p>Permet pose propre sans solliciter cloison légère. </p>",
             "color": "#e0f2fe",
+            "image": null
+          }
+        ]
+      },
+      {
+        "name": "Évacuation",
+        "icon": "🚽",
+        "sectionId": 4,
+        "color": "#8b5cf6",
+        "subs": [
+          {
+            "id": 401,
+            "title": "PVC, PP, Cuivre",
+            "text": "<p></p><p>Choisir le matériau selon type d'eau, pression et norme.</p><p></p><p>🔹<span style=\"color: rgb(90, 171, 190);\"><u>PVC</u></span>: Économique, usage courant</p><p>🔹<span style=\"color: rgb(119, 73, 208);\"><u>PP</u></span> : Meilleure résistance chimique</p><p>🔹<span style=\"color: rgb(198, 95, 82);\"><u>Cuivre</u></span> : Durabilité maximale, haut de gamme</p>",
+            "color": "#ddd6fe",
+            "image": null
+          },
+          {
+            "id": 402,
+            "title": "Pentes et diamètres",
+            "text": "<p>💡 **Maintenir pente correcte pour écoulement naturel et éviter bouchons**.</p><p></p><p>Pentes recommandées :</p><p>- Eaux usées : 2-3% minimum</p><p>- Eaux pluviales : 0,5-1%</p><p>- Collecteurs : 1-2% </p><p></p><p>Diamètres courants :</p><p>- Lavabo : 32 mm</p><p>- Douche/Baignoire : 40 mm</p><p>- WC : 100 mm</p>",
+            "color": "#ddd6fe",
             "image": null
           }
         ]
