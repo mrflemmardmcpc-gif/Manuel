@@ -3,7 +3,7 @@ export default {
     "requiresAuth": false
   },
   "Chauffagiste": {
-    "requiresAuth": false
+    "requiresAuth": true
   },
   "Maçon": {
     "requiresAuth": true
