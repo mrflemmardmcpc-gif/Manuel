@@ -1,9 +1,10 @@
 const { exec } = require('child_process');
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
+  try {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
-  const ADMIN_KEY = process.env.ADMIN_KEY;
+    const ADMIN_KEY = process.env.ADMIN_KEY;
   // If ADMIN_KEY is set in the environment, require it in the request header.
   // For development convenience, allow the call when NODE_ENV !== 'production' even if the header doesn't match.
   if (ADMIN_KEY) {
@@ -49,17 +50,21 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Fallback: try running the local script (only useful in development where the file exists)
-  exec('node export-redis-to-git.cjs', { cwd: process.cwd() }, (error, stdout, stderr) => {
-    if (stdout && stdout.includes('No change in data')) {
-      return res.status(200).json({ success: true, output: stdout });
-    }
-    if (error) {
-      if (stdout && stdout.trim().length > 0) {
+    // Fallback: try running the local script (only useful in development where the file exists)
+    exec('node export-redis-to-git.cjs', { cwd: process.cwd() }, (error, stdout, stderr) => {
+      if (stdout && stdout.includes('No change in data')) {
         return res.status(200).json({ success: true, output: stdout });
       }
-      return res.status(500).json({ error: stderr || error.message });
-    }
-    return res.status(200).json({ success: true, output: stdout });
-  });
+      if (error) {
+        if (stdout && stdout.trim().length > 0) {
+          return res.status(200).json({ success: true, output: stdout });
+        }
+        return res.status(500).json({ error: stderr || error.message });
+      }
+      return res.status(200).json({ success: true, output: stdout });
+    });
+  } catch (e) {
+    console.error('api/export-push error:', e);
+    return res.status(500).json({ error: e && e.message ? e.message : String(e) });
+  }
 };
