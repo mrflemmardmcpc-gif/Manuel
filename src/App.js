@@ -140,25 +140,8 @@ function App() {
   const exportRef = useRef(null);
 
   const MODULES_CONFIG_KEY = 'modules_config_v1';
+  // Load modules config from bundled file only. Do NOT persist in localStorage anymore
   const [modulesConfig, setModulesConfig] = useState(() => {
-    try {
-      const raw = localStorage.getItem(MODULES_CONFIG_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const normalized = {};
-        modules.forEach(m => {
-          const p = parsed && parsed[m.name];
-          normalized[m.name] = {
-            requiresAuth: (p && typeof p.requiresAuth === 'boolean') ? p.requiresAuth : !(m.name === 'Plombier' || m.name === 'Chauffagiste')
-          };
-        });
-        return normalized;
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    // Fallback to bundled config file if present
     try {
       const src = modulesConfigSrc && (modulesConfigSrc.value || modulesConfigSrc);
       if (src && typeof src === 'object') {
@@ -174,7 +157,6 @@ function App() {
     } catch (e) {
       // ignore
     }
-
     const defaults = {};
     modules.forEach(m => {
       defaults[m.name] = {
@@ -187,7 +169,6 @@ function App() {
   const saveModulesConfig = (updater) => {
     setModulesConfig(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      try { localStorage.setItem(MODULES_CONFIG_KEY, JSON.stringify(next)); } catch (e) {}
       return next;
     });
   };
@@ -201,7 +182,10 @@ function App() {
 
   const pushModulesConfigToServer = async (cfg) => {
     try {
-      const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: 'modulesconfig', data: cfg }) });
+      // ensure we send a stringified payload to avoid body-parsing issues on some environments
+      const payload = { module: 'modulesconfig', data: JSON.stringify(cfg) };
+      console.debug('[pushModulesConfigToServer] payload=', payload);
+      const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) {
         const txt = await res.text();
         throw new Error(txt || 'Export failed');
@@ -240,7 +224,6 @@ function App() {
     let nextCfg = null;
     setModulesConfig(prev => {
       const next = { ...prev, [pendingLockModule]: { ...(prev[pendingLockModule] || {}), requiresAuth: pendingLockTarget } };
-      try { localStorage.setItem(MODULES_CONFIG_KEY, JSON.stringify(next)); } catch (e) {}
       nextCfg = next;
       return next;
     });
