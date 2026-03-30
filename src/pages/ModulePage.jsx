@@ -7,12 +7,14 @@ import FullEditorPage from "../modals/FullEditorPage";
 import mainTheme from "../theme/theme";
 import "../AppTiptap.css";
 
-export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Module', dataOverride = null }) {
+export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Module', dataOverride = null, onDirtyChange = null }) {
   const moduleKey = (moduleName || 'Module').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
   const rawKey = `module_${moduleKey}`;
   const STORAGE_KEY = `${rawKey}_v1`;
   const treeKey = `module_${(moduleName || 'Module').replace(/\s/g, '')}`;
   const initial = dataOverride ? (dataOverride.value || dataOverride) : { sections: [], categories: [] };
+  const baseSnapshotRef = React.useRef(JSON.stringify(initial));
+  const [isDirty, setIsDirty] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [data, setData] = useState(initial);
 
@@ -104,9 +106,31 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
       } catch (e) {
         console.error(`Failed to persist ${moduleName} data:`, e);
       }
+      // detect dirty state compared to original bundled data
+      try {
+        const snap = JSON.stringify(next || {});
+        const dirty = snap !== (baseSnapshotRef.current || '');
+        if (dirty !== isDirty) {
+          setIsDirty(dirty);
+          try { if (typeof onDirtyChange === 'function') onDirtyChange(dirty); } catch (e) {}
+        }
+      } catch (e) { /* ignore */ }
       return next;
     });
   };
+
+  // warn on unload if admin and dirty
+  useEffect(() => {
+    const handler = (e) => {
+      if (isAdmin && isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isAdmin, isDirty]);
 
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [expandedCategoryId, setExpandedCategoryId] = useState(null);
@@ -170,6 +194,18 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     setEditMode(Boolean(isAdmin));
     setShowEditSectionsPanel(Boolean(isAdmin));
   }, [isAdmin]);
+
+  // ensure initial dirty state reflects persisted data vs bundled snapshot
+  useEffect(() => {
+    try {
+      const snap = JSON.stringify(data || {});
+      const dirty = snap !== (baseSnapshotRef.current || '');
+      if (dirty !== isDirty) {
+        setIsDirty(dirty);
+        try { if (typeof onDirtyChange === 'function') onDirtyChange(dirty); } catch (e) {}
+      }
+    } catch (e) { /* ignore */ }
+  }, [data]);
 
   const handleSetSearch = (q) => setSearchTerm(q || "");
 

@@ -4,7 +4,7 @@ import React from 'react';
 import './App.css';
 import { MdPlumbing, MdFireExtinguisher, MdConstruction, MdFormatPaint, MdLock, MdLockOpen } from 'react-icons/md';
 import { FaHardHat, FaRulerCombined, FaFire, FaBrush, FaWindowRestore, FaWater, FaBolt, FaTools } from 'react-icons/fa';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CubeButton, LoginModal } from './ui';
 import Plombier from './pages/Plombier';
 import Chauffagiste from './pages/Chauffagiste';
@@ -131,6 +131,11 @@ function App() {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  // global unsaved flag updated by ModulePage via onDirtyChange
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showConfirmPushModal, setShowConfirmPushModal] = useState(false);
+  const [pushStatus, setPushStatus] = useState('idle'); // 'idle'|'pending'|'done'|'error'
+  const [pushMessage, setPushMessage] = useState('');
 
   const MODULES_CONFIG_KEY = 'modules_config_v1';
   const [modulesConfig, setModulesConfig] = useState(() => {
@@ -193,24 +198,94 @@ function App() {
   // Affichage de la page du module sélectionné
   if (selected) {
     const goHome = () => setSelected(null);
-    const pages = {
-      'Plombier': <Plombier isAdmin={isAdmin} onHome={goHome} />,
-      'Chauffagiste': <Chauffagiste isAdmin={isAdmin} onHome={goHome} />,
-      'Maçon': <Macon isAdmin={isAdmin} onHome={goHome} />,
-      'Couvreur': <Couvreur isAdmin={isAdmin} onHome={goHome} />,
-      'Menuisier': <Menuisier isAdmin={isAdmin} onHome={goHome} />,
-      'Électricien': <Electricien isAdmin={isAdmin} onHome={goHome} />,
-      'Peintre': <Peintre isAdmin={isAdmin} onHome={goHome} />,
-      'Carreleur': <Carreleur isAdmin={isAdmin} onHome={goHome} />,
-      'Plâtrier': <Platrier isAdmin={isAdmin} onHome={goHome} />,
-      'Étancheur': <Etancheur isAdmin={isAdmin} onHome={goHome} />,
-      'Charpentier': <Charpentier isAdmin={isAdmin} onHome={goHome} />,
-      'Dessinateur': <Dessinateur isAdmin={isAdmin} onHome={goHome} />,
-      'Serrurier': <Serrurier isAdmin={isAdmin} onHome={goHome} />,
-      'Ferrailleur': <Ferrailleur isAdmin={isAdmin} onHome={goHome} />,
-      'Calorifugeur': <Calorifugeur isAdmin={isAdmin} onHome={goHome} />,
+    const attemptGoHome = () => {
+      if (isAdmin && hasUnsavedChanges) {
+        setShowConfirmPushModal(true);
+        return;
+      }
+      goHome();
     };
-    return pages[selected] || null;
+
+    const pushAndGoHome = async () => {
+      setPushStatus('pending');
+      setPushMessage('');
+      try {
+        // Call server endpoint without prompting for admin key.
+        const res = await fetch('/api/export-push', { method: 'POST' });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error('Export failed: ' + txt);
+        }
+        // trigger publish (optional)
+        try {
+          const res2 = await fetch('/api/publish', { method: 'POST' });
+          if (!res2.ok) {
+            const txt2 = await res2.text();
+            // not fatal — still consider export success
+            setPushMessage('Export ok, publish failed: ' + txt2);
+            setPushStatus('done');
+            setHasUnsavedChanges(false);
+            setShowConfirmPushModal(false);
+            goHome();
+            return;
+          }
+        } catch (e) {
+          // ignore publish errors
+        }
+
+        setPushStatus('done');
+        setHasUnsavedChanges(false);
+        setShowConfirmPushModal(false);
+        goHome();
+      } catch (e) {
+        setPushStatus('error');
+        setPushMessage(e.message || String(e));
+      }
+    };
+
+    const discardAndGoHome = () => {
+      // user chooses to ignore changes and go home
+      setHasUnsavedChanges(false);
+      setShowConfirmPushModal(false);
+      goHome();
+    };
+
+    const pages = {
+      'Plombier': <Plombier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Chauffagiste': <Chauffagiste isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Maçon': <Macon isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Couvreur': <Couvreur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Menuisier': <Menuisier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Électricien': <Electricien isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Peintre': <Peintre isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Carreleur': <Carreleur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Plâtrier': <Platrier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Étancheur': <Etancheur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Charpentier': <Charpentier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Dessinateur': <Dessinateur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Serrurier': <Serrurier isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Ferrailleur': <Ferrailleur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Calorifugeur': <Calorifugeur isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+    };
+    return (
+      <>
+        {pages[selected] || null}
+        {showConfirmPushModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }}>
+            <div style={{ width: 520, maxWidth: '94%', background: '#241c3a', padding: 20, borderRadius: 12, boxShadow: '0 8px 30px rgba(0,0,0,0.6)' }}>
+              <h3 style={{ marginTop: 0, color: THEME.accent1 }}>Modifications non sauvegardées</h3>
+              <p>Des modifications locales ont été détectées. Voulez‑vous pousser ces modifications vers GitHub (et déclencher la publication) avant de retourner à l'accueil ?</p>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowConfirmPushModal(false)} style={{ padding: '8px 12px', borderRadius: 8, background: 'transparent', color: 'white', border: '1px solid #666' }}>Annuler</button>
+                <button onClick={discardAndGoHome} style={{ padding: '8px 12px', borderRadius: 8, background: '#777', color: 'white', border: 'none' }}>Ignorer et revenir</button>
+                <button onClick={pushAndGoHome} style={{ padding: '8px 12px', borderRadius: 8, background: THEME.accent1, color: '#111', border: 'none' }}>{pushStatus === 'pending' ? 'Envoi...' : 'Pousser et revenir'}</button>
+              </div>
+              {pushStatus === 'error' && <div style={{ marginTop: 10, color: '#f87171' }}>{pushMessage}</div>}
+            </div>
+          </div>
+        )}
+      </>
+    );
   }
 
   // Menu principal
