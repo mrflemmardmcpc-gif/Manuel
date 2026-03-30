@@ -3,10 +3,10 @@ export default {
     "requiresAuth": false
   },
   "Chauffagiste": {
-    "requiresAuth": true
+    "requiresAuth": false
   },
   "Maçon": {
-    "requiresAuth": true
+    "requiresAuth": false
   },
   "Couvreur": {
     "requiresAuth": true
