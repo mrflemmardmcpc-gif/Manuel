@@ -210,8 +210,26 @@ function App() {
       setPushStatus('pending');
       setPushMessage('');
       try {
-        // Call server endpoint without prompting for admin key.
-        const res = await fetch('/api/export-push', { method: 'POST' });
+        // Prepare module storage key to read current edits from localStorage and send them to server
+        const computeStorageKey = (moduleName) => {
+          try {
+            const moduleKey = (moduleName || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+            const rawKey = `module_${moduleKey}`;
+            return `${rawKey}_v1`;
+          } catch (e) { return null; }
+        };
+
+        let bodyPayload = null;
+        try {
+          const storageKey = computeStorageKey(selected);
+          const raw = storageKey ? (localStorage.getItem(storageKey) || localStorage.getItem(`module_${selected}`)) : null;
+          if (raw) {
+            try { bodyPayload = JSON.parse(raw); } catch (e) { bodyPayload = raw; }
+          }
+        } catch (e) { bodyPayload = null; }
+
+        // Call server endpoint with current module data (if available)
+        const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: bodyPayload }) });
         if (!res.ok) {
           const txt = await res.text();
           throw new Error('Export failed: ' + txt);
