@@ -24,6 +24,8 @@ module.exports = async function handler(req, res) {
         const chunks = [];
         for await (const chunk of request) chunks.push(chunk);
         const raw = Buffer.concat(chunks).toString();
+        // store raw body for debug purposes
+        try { request._rawBody = raw; } catch (e) { /* ignore */ }
         if (raw && raw.trim()) {
           try { request.body = JSON.parse(raw); } catch (e) { /* ignore parse errors */ }
         }
@@ -262,6 +264,9 @@ module.exports = async function handler(req, res) {
             debugInfo.bodyDataSample = String(req.body && req.body.data).slice(0, 200);
           }
           debugInfo.isArray = Array.isArray(req.body && req.body.data ? req.body.data : null);
+          // Include a short raw-body and header info to help debugging client payload
+          debugInfo.rawBodySample = req._rawBody ? String(req._rawBody).slice(0, 400) : null;
+          debugInfo.headers = { 'content-type': req.headers['content-type'] || null, 'content-length': req.headers['content-length'] || null };
         } catch (e) { /* ignore */ }
         console.log('[export-push][debug] invalid data, debug=', debugInfo);
         return res.status(400).json({ error: 'No valid data to export', debug: debugInfo });
