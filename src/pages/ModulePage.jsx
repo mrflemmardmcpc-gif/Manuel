@@ -655,32 +655,6 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         onOpenNewCategoryModal={handleOpenNewCategoryModal}
       />
 
-      {remoteChanged && (
-        <div style={{ position: 'fixed', left: 20, top: 84, zIndex: 1400, background: '#2f2346', color: '#fff', padding: '12px', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.4)', width: 420 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Conflits distants détectés</div>
-          <div style={{ fontSize: 13, marginBottom: 8 }}>Des modifications distantes entrent en conflit avec vos modifications locales. Choisissez par élément ou acceptez tout.</div>
-          <div style={{ maxHeight: 220, overflow: 'auto', padding: 8, background: '#241735', borderRadius: 6 }}>
-            {conflicts && conflicts.length ? conflicts.map((c, idx) => (
-              <div key={idx} style={{ marginBottom: 10, padding: 8, borderRadius: 6, background: '#2b2040' }}>
-                <div style={{ fontWeight: 700 }}>{c.type === 'category' ? `Catégorie ${c.id}` : `Sous-mod ${c.id} (cat ${c.categoryId})`}</div>
-                <div style={{ fontSize: 12, marginTop: 6, color: '#ddd' }}>
-                  <div>Local: <span style={{ color: '#ffdede' }}>{(c.local && (c.local.name || c.local.title || c.local.title) && String((c.local.name || c.local.title || '').slice(0,40))) || '—'}</span></div>
-                  <div>Distante: <span style={{ color: '#d4ffd4' }}>{(c.remote && (c.remote.name || c.remote.title || '') && String((c.remote.name || c.remote.title || '').slice(0,40))) || '—'}</span></div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button onClick={() => applyRemoteEntity(c)} style={{ padding: '6px 8px', borderRadius: 6, background: '#10b981', color: '#06281a', border: 'none' }}>Accepter distant</button>
-                  <button onClick={() => keepLocalEntity(c)} style={{ padding: '6px 8px', borderRadius: 6, background: '#f97316', color: '#2b0f00', border: 'none' }}>Garder local</button>
-                  <button onClick={() => { setRemotePreview(c); setShowRemotePreviewModal(true); }} style={{ padding: '6px 8px', borderRadius: 6, background: 'transparent', color: '#fff', border: '1px solid #fff' }}>Voir</button>
-                </div>
-              </div>
-            )) : <div style={{ color: '#ddd' }}>Aucun conflit détecté.</div>}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
-            <button onClick={acceptAllRemote} style={{ padding: '8px 10px', borderRadius: 6, background: '#6d4aff', color: '#fff', border: 'none' }}>Accepter tout distant</button>
-            <button onClick={keepAllLocal} style={{ padding: '8px 10px', borderRadius: 6, background: '#444', color: '#fff', border: 'none' }}>Garder tout local</button>
-          </div>
-        </div>
-      )}
 
       <FullEditorPage
         open={editMode}
