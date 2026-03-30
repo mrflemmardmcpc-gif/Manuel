@@ -47,9 +47,11 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
 
   // Autosave helpers (debounced) for admins
   const autosaveTimerRef = useRef(null);
+  const suppressAutosaveRef = useRef(false);
   const scheduleAutosave = (payload) => {
     try {
       if (!isAdmin) return;
+      if (suppressAutosaveRef.current) return;
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
       autosaveTimerRef.current = setTimeout(async () => {
         try {
@@ -110,6 +112,112 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
   const [showRemotePreviewModal, setShowRemotePreviewModal] = useState(false);
   const lastLocalSnapRef = useRef(JSON.stringify(data || {}));
   const lastRemoteSnapRef = useRef(baseSnapshotRef.current || '');
+  const mergedBaseRef = useRef(baseSnapshotRef.current || '');
+  const [conflicts, setConflicts] = useState([]);
+
+  const deepClone = (v) => { try { return JSON.parse(JSON.stringify(v || {})); } catch (e) { return v; } };
+  const deepEqual = (a,b) => { try { return JSON.stringify(a) === JSON.stringify(b); } catch (e) { return a === b; } };
+  const mapById = (arr) => { const m = {}; (arr || []).forEach(it => { if (it && it.id !== undefined) m[String(it.id)] = it; }); return m; };
+
+  const threeWayMerge = (base, local, remote) => {
+    // focus on categories/subs merging; return { merged, conflicts: [] }
+    try {
+      const baseCats = (base && base.categories) ? base.categories : [];
+      const localCats = (local && local.categories) ? local.categories : [];
+      const remoteCats = (remote && remote.categories) ? remote.categories : [];
+      const baseMap = mapById(baseCats);
+      const localMap = mapById(localCats);
+      const remoteMap = mapById(remoteCats);
+      const mergedMap = Object.assign({}, localMap); // start from local
+      const conflicts = [];
+      const allIds = new Set([...Object.keys(baseMap), ...Object.keys(localMap), ...Object.keys(remoteMap)]);
+      for (const id of allIds) {
+        const b = baseMap[id];
+        const l = localMap[id];
+        const r = remoteMap[id];
+        if (!b && r && !l) {
+          // new remote category
+          mergedMap[id] = deepClone(r);
+          continue;
+        }
+        if (b && !r) {
+          // remote deleted
+          if (!l || deepEqual(b, l)) {
+            delete mergedMap[id];
+            continue;
+          } else {
+            conflicts.push({ type: 'category', id, reason: 'deleted-remotely', base: b, local: l, remote: null });
+            continue;
+          }
+        }
+        if (b && r) {
+          if (!l) {
+            // local missing, adopt remote
+            mergedMap[id] = deepClone(r);
+            continue;
+          }
+          // both exist - check if local changed vs base and remote changed vs base
+          const baseEqLocal = deepEqual(b, l);
+          const baseEqRemote = deepEqual(b, r);
+          if (baseEqLocal && !baseEqRemote) {
+            // local didn't change -> adopt remote
+            mergedMap[id] = deepClone(r);
+            continue;
+          }
+          if (!baseEqLocal && baseEqRemote) {
+            // remote didn't change -> keep local
+            mergedMap[id] = deepClone(l);
+            continue;
+          }
+          if (!baseEqLocal && !baseEqRemote) {
+            // both changed -> attempt subs merge
+            const subsBase = (b.subs || []);
+            const subsLocal = (l.subs || []);
+            const subsRemote = (r.subs || []);
+            const baseSubMap = mapById(subsBase);
+            const localSubMap = mapById(subsLocal);
+            const remoteSubMap = mapById(subsRemote);
+            const mergedSubsMap = Object.assign({}, localSubMap);
+            const allSubIds = new Set([...Object.keys(baseSubMap), ...Object.keys(localSubMap), ...Object.keys(remoteSubMap)]);
+            for (const sid of allSubIds) {
+              const sb = baseSubMap[sid];
+              const sl = localSubMap[sid];
+              const sr = remoteSubMap[sid];
+              if (!sb && sr && !sl) { mergedSubsMap[sid] = deepClone(sr); continue; }
+              if (sb && !sr) {
+                if (!sl || deepEqual(sb, sl)) { delete mergedSubsMap[sid]; continue; }
+                else { conflicts.push({ type: 'sub', id: sid, categoryId: id, reason: 'deleted-remotely', base: sb, local: sl, remote: null }); continue; }
+              }
+              if (sb && sr) {
+                if (!sl) { mergedSubsMap[sid] = deepClone(sr); continue; }
+                const baseEqLocalSub = deepEqual(sb, sl);
+                const baseEqRemoteSub = deepEqual(sb, sr);
+                if (baseEqLocalSub && !baseEqRemoteSub) { mergedSubsMap[sid] = deepClone(sr); continue; }
+                if (!baseEqLocalSub && baseEqRemoteSub) { mergedSubsMap[sid] = deepClone(sl); continue; }
+                if (!baseEqLocalSub && !baseEqRemoteSub) { conflicts.push({ type: 'sub', id: sid, categoryId: id, base: sb, local: sl, remote: sr }); continue; }
+              }
+            }
+            // rebuild subs array preserving local order then appending new remote ones
+            const mergedSubs = [];
+            const seen = new Set();
+            for (const s of subsLocal) { if (s && mergedSubsMap[String(s.id)]) { mergedSubs.push(mergedSubsMap[String(s.id)]); seen.add(String(s.id)); } }
+            for (const s of subsRemote) { if (s && !seen.has(String(s.id))) { mergedSubs.push(mergedSubsMap[String(s.id)] || deepClone(s)); seen.add(String(s.id)); } }
+            mergedMap[id] = Object.assign({}, deepClone(l), { subs: mergedSubs });
+            continue;
+          }
+        }
+      }
+      // rebuild categories array preserving local order then appending new remote ones
+      const mergedCats = [];
+      const seenCats = new Set();
+      for (const c of localCats) { if (c && mergedMap[String(c.id)]) { mergedCats.push(mergedMap[String(c.id)]); seenCats.add(String(c.id)); } }
+      for (const c of remoteCats) { if (c && !seenCats.has(String(c.id))) { mergedCats.push(mergedMap[String(c.id)] || deepClone(c)); seenCats.add(String(c.id)); } }
+      const merged = Object.assign({}, deepClone(local || {}), { categories: mergedCats });
+      return { merged, conflicts };
+    } catch (e) {
+      return { merged: null, conflicts: [] };
+    }
+  };
 
   useEffect(() => {
     try { lastLocalSnapRef.current = JSON.stringify(data || {}); } catch (e) { lastLocalSnapRef.current = '' + (data || ''); }
@@ -136,20 +244,44 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         const remoteSnap = JSON.stringify(remoteVal || {});
         if (remoteSnap !== lastRemoteSnapRef.current) {
           lastRemoteSnapRef.current = remoteSnap;
-          if (remoteSnap !== lastLocalSnapRef.current) {
-            if (!isDirty) {
-              try {
-                baseSnapshotRef.current = remoteSnap;
-              } catch (e) {}
-              // apply remote silently
-              try { updateData(remoteVal || {}); } catch (e) { setData(remoteVal || {}); }
+          // perform a three-way merge (base = mergedBaseRef)
+          try {
+            const baseObj = mergedBaseRef.current ? JSON.parse(mergedBaseRef.current) : {};
+            const localObj = data || {};
+            const remoteObj = remoteVal || {};
+            const mergeResult = threeWayMerge(baseObj, localObj, remoteObj) || {};
+            const merged = mergeResult.merged || null;
+            const mergeConflicts = mergeResult.conflicts || [];
+            if (merged) {
+              suppressAutosaveRef.current = true;
+              try { updateData(merged); } catch (e) { setData(merged); }
+              suppressAutosaveRef.current = false;
               try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {}
-              setRemoteChanged(false);
+              mergedBaseRef.current = JSON.stringify(merged);
+              lastLocalSnapRef.current = JSON.stringify(merged);
+            }
+            if (mergeConflicts && mergeConflicts.length) {
+              setConflicts(mergeConflicts);
+              setRemoteChanged(true);
               setRemotePreview(null);
             } else {
-              // local is dirty: show preview and let admin decide
-              setRemotePreview(remoteVal || {});
-              setRemoteChanged(true);
+              setConflicts([]);
+              setRemoteChanged(false);
+              setRemotePreview(null);
+            }
+          } catch (e) {
+            // fallback to previous behavior
+            if (remoteSnap !== lastLocalSnapRef.current) {
+              if (!isDirty) {
+                try { baseSnapshotRef.current = remoteSnap; } catch (e) {}
+                try { updateData(remoteVal || {}); } catch (e) { setData(remoteVal || {}); }
+                try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {}
+                setRemoteChanged(false);
+                setRemotePreview(null);
+              } else {
+                setRemotePreview(remoteVal || {});
+                setRemoteChanged(true);
+              }
             }
           }
         }
@@ -162,6 +294,69 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     timer = setInterval(fetchRemote, 2500);
     return () => { stopped = true; if (timer) clearInterval(timer); };
   }, [isAdmin, moduleName, isDirty]);
+
+  // Conflict resolution helpers
+  const applyRemoteEntity = async (conflict) => {
+    try {
+      if (!conflict) return;
+      suppressAutosaveRef.current = true;
+      updateData(prev => {
+        if (conflict.type === 'category') {
+          const cats = (prev.categories || []).map(c => c.id === conflict.id ? (conflict.remote ? deepClone(conflict.remote) : c) : c);
+          if (!cats.some(c => c.id === conflict.id) && conflict.remote) cats.push(deepClone(conflict.remote));
+          return { ...prev, categories: cats };
+        }
+        if (conflict.type === 'sub') {
+          const cats = (prev.categories || []).map(cat => {
+            if (cat.id === conflict.categoryId) {
+              const subs = (cat.subs || []).map(s => s.id === conflict.id ? (conflict.remote ? deepClone(conflict.remote) : s) : s);
+              if (!subs.some(s => s.id === conflict.id) && conflict.remote) subs.push(deepClone(conflict.remote));
+              return { ...cat, subs };
+            }
+            return cat;
+          });
+          return { ...prev, categories: cats };
+        }
+        return prev;
+      });
+      suppressAutosaveRef.current = false;
+      setConflicts(prev => prev.filter(c => !(c.type === conflict.type && c.id === conflict.id && (c.categoryId || null) === (conflict.categoryId || null))));
+      if (!conflicts || conflicts.length <= 1) setRemoteChanged(false);
+    } catch (e) {
+      suppressAutosaveRef.current = false;
+    }
+  };
+
+  const keepLocalEntity = (conflict) => {
+    setConflicts(prev => prev.filter(c => !(c.type === conflict.type && c.id === conflict.id && (c.categoryId || null) === (conflict.categoryId || null))));
+    if (!conflicts || conflicts.length <= 1) setRemoteChanged(false);
+  };
+
+  const acceptAllRemote = async () => {
+    try {
+      const q = encodeURIComponent(moduleName || '');
+      const res = await fetch('/api/export-get?module=' + q, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json || !json.success) return;
+      let remoteVal = json.data;
+      if (remoteVal && remoteVal.value && (remoteVal.value.sections || remoteVal.value.categories)) remoteVal = remoteVal.value;
+      if (typeof remoteVal === 'string') {
+        try { remoteVal = JSON.parse(remoteVal); } catch (e) {}
+      }
+      suppressAutosaveRef.current = true;
+      try { updateData(remoteVal || {}); } catch (e) { setData(remoteVal || {}); }
+      suppressAutosaveRef.current = false;
+      mergedBaseRef.current = JSON.stringify(remoteVal || {});
+      setConflicts([]);
+      setRemoteChanged(false);
+    } catch (e) {}
+  };
+
+  const keepAllLocal = () => {
+    setConflicts([]);
+    setRemoteChanged(false);
+  };
 
   const [editingSubId, setEditingSubId] = useState(null);
   const [addingSubToCatId, setAddingSubToCatId] = useState(null);
@@ -541,14 +736,28 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
       />
 
       {remoteChanged && (
-        <div style={{ position: 'fixed', left: 20, top: 84, zIndex: 1400, background: '#2f2346', color: '#fff', padding: '10px 12px', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.4)' }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Modifications distantes détectées</div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button onClick={() => {
-              try { const snap = JSON.stringify(remotePreview || {}); baseSnapshotRef.current = snap; updateData(remotePreview || {}); setRemoteChanged(false); setRemotePreview(null); try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {} } catch (e) { }
-            }} style={{ padding: '6px 10px', borderRadius: 6, background: '#6d4aff', color: '#fff', border: 'none' }}>Charger distantes</button>
-            <button onClick={() => { setShowRemotePreviewModal(true); }} style={{ padding: '6px 10px', borderRadius: 6, background: 'transparent', color: '#fff', border: '1px solid #fff' }}>Aperçu</button>
-            <button onClick={() => { setRemoteChanged(false); setRemotePreview(null); }} style={{ padding: '6px 10px', borderRadius: 6, background: '#444', color: '#fff', border: 'none' }}>Ignorer</button>
+        <div style={{ position: 'fixed', left: 20, top: 84, zIndex: 1400, background: '#2f2346', color: '#fff', padding: '12px', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.4)', width: 420 }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>Conflits distants détectés</div>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>Des modifications distantes entrent en conflit avec vos modifications locales. Choisissez par élément ou acceptez tout.</div>
+          <div style={{ maxHeight: 220, overflow: 'auto', padding: 8, background: '#241735', borderRadius: 6 }}>
+            {conflicts && conflicts.length ? conflicts.map((c, idx) => (
+              <div key={idx} style={{ marginBottom: 10, padding: 8, borderRadius: 6, background: '#2b2040' }}>
+                <div style={{ fontWeight: 700 }}>{c.type === 'category' ? `Catégorie ${c.id}` : `Sous-mod ${c.id} (cat ${c.categoryId})`}</div>
+                <div style={{ fontSize: 12, marginTop: 6, color: '#ddd' }}>
+                  <div>Local: <span style={{ color: '#ffdede' }}>{(c.local && (c.local.name || c.local.title || c.local.title) && String((c.local.name || c.local.title || '').slice(0,40))) || '—'}</span></div>
+                  <div>Distante: <span style={{ color: '#d4ffd4' }}>{(c.remote && (c.remote.name || c.remote.title || '') && String((c.remote.name || c.remote.title || '').slice(0,40))) || '—'}</span></div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button onClick={() => applyRemoteEntity(c)} style={{ padding: '6px 8px', borderRadius: 6, background: '#10b981', color: '#06281a', border: 'none' }}>Accepter distant</button>
+                  <button onClick={() => keepLocalEntity(c)} style={{ padding: '6px 8px', borderRadius: 6, background: '#f97316', color: '#2b0f00', border: 'none' }}>Garder local</button>
+                  <button onClick={() => { setRemotePreview(c); setShowRemotePreviewModal(true); }} style={{ padding: '6px 8px', borderRadius: 6, background: 'transparent', color: '#fff', border: '1px solid #fff' }}>Voir</button>
+                </div>
+              </div>
+            )) : <div style={{ color: '#ddd' }}>Aucun conflit détecté.</div>}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+            <button onClick={acceptAllRemote} style={{ padding: '8px 10px', borderRadius: 6, background: '#6d4aff', color: '#fff', border: 'none' }}>Accepter tout distant</button>
+            <button onClick={keepAllLocal} style={{ padding: '8px 10px', borderRadius: 6, background: '#444', color: '#fff', border: 'none' }}>Garder tout local</button>
           </div>
         </div>
       )}
