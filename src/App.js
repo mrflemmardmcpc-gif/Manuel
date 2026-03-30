@@ -302,8 +302,10 @@ function App() {
           } catch (e) { bodyPayload = null; }
         }
 
-        // Call server endpoint with current module data (if available)
-        const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: selected, data: bodyPayload }) });
+        // Build payload: do NOT include `data` when it's null/undefined (server will then try Upstash)
+        const payload = (bodyPayload !== null && typeof bodyPayload !== 'undefined') ? { module: selected, data: bodyPayload } : { module: selected };
+        console.debug('[pushAndGoHome] payload:', payload);
+        const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!res.ok) {
           const txt = await res.text();
           throw new Error('Export failed: ' + txt);
