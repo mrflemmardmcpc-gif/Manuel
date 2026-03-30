@@ -194,6 +194,10 @@ module.exports = async function handler(req, res) {
         try { dataObj = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue; } catch (e) { return res.status(500).json({ error: 'Upstash value is not valid JSON: ' + e.message }); }
       }
 
+      // debug info for tracing why data may be invalid
+      try {
+        console.log('[export-push] module=', moduleName, 'bodyKeys=', req.body ? Object.keys(req.body) : null, 'typeof_data=', typeof dataObj, 'isArray=', Array.isArray(dataObj));
+      } catch (e) { /* ignore logging errors */ }
       if (!dataObj || (typeof dataObj !== 'object' && !Array.isArray(dataObj))) return res.status(400).json({ error: 'No valid data to export' });
 
       // Prepare exported object in the same shape the pages expect. If the payload already
