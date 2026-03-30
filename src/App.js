@@ -183,6 +183,11 @@ function App() {
 
   const pushModulesConfigToServer = async (cfg) => {
     try {
+      // basic validation: cfg must be an object
+      if (!cfg || typeof cfg !== 'object') {
+        console.warn('[pushModulesConfigToServer] invalid cfg, aborting send', cfg);
+        return { success: false, error: 'Invalid modules config (null or not an object)' };
+      }
       // send the modules config as an object so server receives a proper object
       const payload = { module: 'modulesconfig', data: cfg };
       setLockPayloadPreview(cfg);
@@ -222,13 +227,10 @@ function App() {
     if (!pendingLockModule) return;
     setLockPushStatus('pending');
     setLockPushMessage('');
-    // compute next config
-    let nextCfg = null;
-    setModulesConfig(prev => {
-      const next = { ...prev, [pendingLockModule]: { ...(prev[pendingLockModule] || {}), requiresAuth: pendingLockTarget } };
-      nextCfg = next;
-      return next;
-    });
+    // compute next config synchronously to ensure we send a valid object
+    const current = modulesConfig || {};
+    const nextCfg = { ...current, [pendingLockModule]: { ...(current[pendingLockModule] || {}), requiresAuth: pendingLockTarget } };
+    setModulesConfig(nextCfg);
     const result = await pushModulesConfigToServer(nextCfg);
     if (result && result.success) {
       setLockPushStatus('done');
