@@ -170,6 +170,10 @@ module.exports = async function handler(req, res) {
 
       if (req.body && Object.keys(req.body).length > 0 && req.body.data !== undefined) {
         dataObj = req.body.data;
+        // If client serialized `data` as a JSON string, try to parse it.
+        if (typeof dataObj === 'string') {
+          try { dataObj = JSON.parse(dataObj); } catch (e) { /* keep as string */ }
+        }
         // If Upstash is configured, persist a module-scoped key when a module is provided,
         // otherwise persist the default REDIS_KEY (legacy behaviour).
         try {
@@ -190,7 +194,7 @@ module.exports = async function handler(req, res) {
         try { dataObj = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue; } catch (e) { return res.status(500).json({ error: 'Upstash value is not valid JSON: ' + e.message }); }
       }
 
-      if (!dataObj || typeof dataObj !== 'object') return res.status(400).json({ error: 'No valid data to export' });
+      if (!dataObj || (typeof dataObj !== 'object' && !Array.isArray(dataObj))) return res.status(400).json({ error: 'No valid data to export' });
 
       // Prepare exported object in the same shape the pages expect. If the payload already
       // looks like a wrapper (has .value), keep it; otherwise wrap under `value` so pages
