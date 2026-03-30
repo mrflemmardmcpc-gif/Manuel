@@ -37,9 +37,33 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
           try { if (typeof onDirtyChange === 'function') onDirtyChange(dirty); } catch (e) {}
         }
       } catch (e) { /* ignore */ }
+      // schedule autosave for admins (debounced) - will be defined below
+      try {
+        if (isAdmin && typeof scheduleAutosave === 'function') scheduleAutosave(next);
+      } catch (e) {}
       return next;
     });
   };
+
+  // Autosave helpers (debounced) for admins
+  const autosaveTimerRef = useRef(null);
+  const scheduleAutosave = (payload) => {
+    try {
+      if (!isAdmin) return;
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = setTimeout(async () => {
+        try {
+          await fetch('/api/export-set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: moduleName, data: payload }) });
+        } catch (e) {
+          // ignore autosave errors
+        }
+      }, 1200);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    return () => { if (autosaveTimerRef.current) { clearTimeout(autosaveTimerRef.current); autosaveTimerRef.current = null; } };
+  }, []);
 
   // expose current data to parent via exportRef so App can POST it when pushing
   useEffect(() => {
@@ -347,6 +371,17 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
       setEditingSubId(null);
     }
   }, [editMode, data]);
+
+  // When switching out of admin mode, reset to bundled data so visitors see only pushed/deployed data
+  useEffect(() => {
+    if (!isAdmin) {
+      try {
+        setData(initial);
+        baseSnapshotRef.current = JSON.stringify(initial);
+        try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {}
+      } catch (e) {}
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!editingSubId) return;
