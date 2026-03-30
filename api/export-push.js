@@ -109,9 +109,45 @@ module.exports = async function handler(req, res) {
     });
 
     try {
-      const rawValue = await getUpstash({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: REDIS_KEY });
-      let dataObj;
-      try { dataObj = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue; } catch (e) { return res.status(500).json({ error: 'Upstash value is not valid JSON: ' + e.message }); }
+      // If the client posted data in the request body, use it (and optionally persist to Upstash)
+      let dataObj = null;
+      if (req.body && Object.keys(req.body).length > 0 && req.body.data !== undefined) {
+        dataObj = req.body.data;
+        // try to persist to Upstash so live admin store is updated
+        const upstashSet = ({ url, token, key, value }) => new Promise((resolve, reject) => {
+          try {
+            const payload = JSON.stringify(value);
+            const u = `${url.replace(/\/$/, '')}/set/${encodeURIComponent(key)}`;
+            const options = {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(payload)
+              }
+            };
+            const r = https.request(u, options, (res2) => {
+              let body = '';
+              res2.on('data', (c) => body += c);
+              res2.on('end', () => {
+                try { const j = JSON.parse(body); return resolve(j); } catch (e) { return resolve(body); }
+              });
+            });
+            r.on('error', reject);
+            r.write(payload);
+            r.end();
+          } catch (e) { reject(e); }
+        });
+
+        try {
+          await upstashSet({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: REDIS_KEY, value: dataObj });
+        } catch (e) {
+          console.warn('Failed to persist posted data to Upstash:', e && e.message ? e.message : e);
+        }
+      } else {
+        const rawValue = await getUpstash({ url: UPSTASH_URL, token: UPSTASH_TOKEN, key: REDIS_KEY });
+        try { dataObj = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue; } catch (e) { return res.status(500).json({ error: 'Upstash value is not valid JSON: ' + e.message }); }
+      }
 
       const newContent = `export default ${JSON.stringify(dataObj, null, 2)};\n`;
       const contentBase64 = Buffer.from(newContent, 'utf8').toString('base64');
