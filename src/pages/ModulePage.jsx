@@ -80,6 +80,65 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
   const [darkMode, setDarkMode] = useState(true);
   const [showGallery, setShowGallery] = useState(false);
 
+  // Live-sync for admins: poll Upstash for remote changes and show/apply them
+  const [remoteChanged, setRemoteChanged] = useState(false);
+  const [remotePreview, setRemotePreview] = useState(null);
+  const [showRemotePreviewModal, setShowRemotePreviewModal] = useState(false);
+  const lastLocalSnapRef = useRef(JSON.stringify(data || {}));
+  const lastRemoteSnapRef = useRef(baseSnapshotRef.current || '');
+
+  useEffect(() => {
+    try { lastLocalSnapRef.current = JSON.stringify(data || {}); } catch (e) { lastLocalSnapRef.current = '' + (data || ''); }
+  }, [data]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    let stopped = false;
+    let timer = null;
+    const fetchRemote = async () => {
+      try {
+        const q = encodeURIComponent(moduleName || '');
+        const res = await fetch('/api/export-get?module=' + q, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        if (!res.ok) return; // ignore errors for now
+        const json = await res.json();
+        if (!json || !json.success) return;
+        let remoteVal = json.data;
+        // unwrap wrapper { value: ... }
+        if (remoteVal && remoteVal.value && (remoteVal.value.sections || remoteVal.value.categories)) remoteVal = remoteVal.value;
+        // if remote stored as string, try parse
+        if (typeof remoteVal === 'string') {
+          try { remoteVal = JSON.parse(remoteVal); } catch (e) { /* keep as string */ }
+        }
+        const remoteSnap = JSON.stringify(remoteVal || {});
+        if (remoteSnap !== lastRemoteSnapRef.current) {
+          lastRemoteSnapRef.current = remoteSnap;
+          if (remoteSnap !== lastLocalSnapRef.current) {
+            if (!isDirty) {
+              try {
+                baseSnapshotRef.current = remoteSnap;
+              } catch (e) {}
+              // apply remote silently
+              try { updateData(remoteVal || {}); } catch (e) { setData(remoteVal || {}); }
+              try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {}
+              setRemoteChanged(false);
+              setRemotePreview(null);
+            } else {
+              // local is dirty: show preview and let admin decide
+              setRemotePreview(remoteVal || {});
+              setRemoteChanged(true);
+            }
+          }
+        }
+      } catch (e) {
+        // ignore polling errors
+      }
+    };
+    // initial fetch then poll
+    fetchRemote();
+    timer = setInterval(fetchRemote, 2500);
+    return () => { stopped = true; if (timer) clearInterval(timer); };
+  }, [isAdmin, moduleName, isDirty]);
+
   const [editingSubId, setEditingSubId] = useState(null);
   const [addingSubToCatId, setAddingSubToCatId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
@@ -445,6 +504,19 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         onHomeClick={handleHomeClick}
         onOpenNewCategoryModal={handleOpenNewCategoryModal}
       />
+
+      {remoteChanged && (
+        <div style={{ position: 'fixed', left: 20, top: 84, zIndex: 1400, background: '#2f2346', color: '#fff', padding: '10px 12px', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Modifications distantes détectées</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={() => {
+              try { const snap = JSON.stringify(remotePreview || {}); baseSnapshotRef.current = snap; updateData(remotePreview || {}); setRemoteChanged(false); setRemotePreview(null); try { if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {} } catch (e) { }
+            }} style={{ padding: '6px 10px', borderRadius: 6, background: '#6d4aff', color: '#fff', border: 'none' }}>Charger distantes</button>
+            <button onClick={() => { setShowRemotePreviewModal(true); }} style={{ padding: '6px 10px', borderRadius: 6, background: 'transparent', color: '#fff', border: '1px solid #fff' }}>Aperçu</button>
+            <button onClick={() => { setRemoteChanged(false); setRemotePreview(null); }} style={{ padding: '6px 10px', borderRadius: 6, background: '#444', color: '#fff', border: 'none' }}>Ignorer</button>
+          </div>
+        </div>
+      )}
 
       <FullEditorPage
         open={editMode}
