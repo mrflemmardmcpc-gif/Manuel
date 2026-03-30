@@ -5,6 +5,23 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
+    // Some dev environments or proxies may not populate `req.body`.
+    // As a fallback, try to read and parse the raw request body stream.
+    const ensureParsedBody = async (request) => {
+      try {
+        if (request.body && Object.keys(request.body).length > 0) return;
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        const raw = Buffer.concat(chunks).toString();
+        if (raw && raw.trim()) {
+          try { request.body = JSON.parse(raw); } catch (e) { /* ignore parse errors */ }
+        }
+      } catch (e) {
+        // ignore; we'll rely on existing req.body if present
+      }
+    };
+    await ensureParsedBody(req);
+
     const ADMIN_KEY = process.env.ADMIN_KEY;
   // If ADMIN_KEY is set in the environment, require it in the request header.
   // For development convenience, allow the call when NODE_ENV !== 'production' even if the header doesn't match.
