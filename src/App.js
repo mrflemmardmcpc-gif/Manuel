@@ -179,11 +179,13 @@ function App() {
   const [pendingLockTarget, setPendingLockTarget] = useState(null); // true = locked (requiresAuth=true), false = unlocked
   const [lockPushStatus, setLockPushStatus] = useState('idle');
   const [lockPushMessage, setLockPushMessage] = useState('');
+  const [lockPayloadPreview, setLockPayloadPreview] = useState(null);
 
   const pushModulesConfigToServer = async (cfg) => {
     try {
-      // ensure we send a stringified payload to avoid body-parsing issues on some environments
-      const payload = { module: 'modulesconfig', data: JSON.stringify(cfg) };
+      // send the modules config as an object so server receives a proper object
+      const payload = { module: 'modulesconfig', data: cfg };
+      setLockPayloadPreview(cfg);
       console.debug('[pushModulesConfigToServer] payload=', payload);
       const res = await fetch('/api/export-push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) {
@@ -233,13 +235,14 @@ function App() {
       setShowConfirmLockModal(false);
       setPendingLockModule(null);
       setPendingLockTarget(null);
+      setLockPayloadPreview(null);
     } else {
       setLockPushStatus('error');
       setLockPushMessage(result && result.error ? result.error : 'Erreur lors du push');
     }
   };
 
-  const cancelLock = () => { setShowConfirmLockModal(false); setPendingLockModule(null); setPendingLockTarget(null); setLockPushStatus('idle'); setLockPushMessage(''); };
+  const cancelLock = () => { setShowConfirmLockModal(false); setPendingLockModule(null); setPendingLockTarget(null); setLockPushStatus('idle'); setLockPushMessage(''); setLockPayloadPreview(null); };
 
   const handleClick = (module) => {
     setSelected(module.name);
@@ -496,6 +499,9 @@ function App() {
               <button onClick={cancelLock} style={{ padding: '8px 12px', borderRadius: 8, background: 'transparent', color: 'white', border: '1px solid #666' }}>Annuler</button>
               <button onClick={confirmLockAndPush} style={{ padding: '8px 12px', borderRadius: 8, background: THEME.accent1, color: '#111', border: 'none' }}>{lockPushStatus === 'pending' ? 'Envoi...' : 'Enregistrer et publier'}</button>
             </div>
+            {lockPayloadPreview && (
+              <pre style={{ marginTop: 12, background: '#2b1f3a', color: '#fff', padding: 12, borderRadius: 8, fontSize: 12, maxHeight: 220, overflow: 'auto' }}>{JSON.stringify(lockPayloadPreview, null, 2)}</pre>
+            )}
             {lockPushStatus === 'error' && <div style={{ marginTop: 10, color: '#f87171' }}>{lockPushMessage}</div>}
             {lockPushStatus === 'done' && <div style={{ marginTop: 10, color: '#10b981' }}>Configuration enregistrée et poussée.</div>}
           </div>
