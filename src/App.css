@@ -57,25 +57,34 @@ html, body, #root {
   }
 
   .App-header {
-    /* don't force full viewport header on mobile; reduce top padding so circle sits lower */
+    /* don't force full viewport header on mobile; center the circle and nudge it down */
     height: auto !important;
-    min-height: 52vh;
-    padding-top: 10vh;
+    min-height: 60vh;
+    padding-top: 3vh;
     padding-bottom: 6vh;
-    justify-content: flex-start;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
   }
 
   .circle-menu {
-    /* reduce the overall menu and font-size so em-based translate distances shrink */
-    width: 10.2em;
-    height: 10.2em;
-    font-size: 12px; /* reduces the meaning of "em" used in inline transforms */
+    /* enlarge the overall menu on mobile so the wheel is bigger */
+    width: 16em;
+    height: 16em;
+    font-size: 16px; /* increases em so inline translate( -10.6em ) yields a larger radius */
+  }
+
+  /* ensure circle sits visually centered and slightly lower on mobile */
+  .App-header .circle-menu {
+    margin-top: 0 !important;
+    transform: translateY(4vh);
   }
 
   .circle-item-inner {
-    width: 3.4em;
-    height: 3.4em;
-    margin: -1.7em;
+    width: 5.4em;
+    height: 5.4em;
+    margin: -2.7em;
   }
 
   .circle-label { font-size: 0.48em; }
