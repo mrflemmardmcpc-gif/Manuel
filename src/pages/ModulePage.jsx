@@ -238,6 +238,10 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         if (typeof remoteVal === 'string') {
           try { remoteVal = JSON.parse(remoteVal); } catch (e) { /* keep as string */ }
         }
+        // Ignore empty remote payloads (null or empty object) to avoid accidental deletions
+        if (!remoteVal || (typeof remoteVal === 'object' && !Array.isArray(remoteVal) && Object.keys(remoteVal).length === 0)) {
+          return;
+        }
         const remoteSnap = JSON.stringify(remoteVal || {});
         if (remoteSnap !== lastRemoteSnapRef.current) {
           lastRemoteSnapRef.current = remoteSnap;
