@@ -38,6 +38,11 @@ module.exports = async function handler(req, res) {
       try { dataObj = JSON.parse(dataObj); } catch (e) { /* keep as string */ }
     }
 
+    // Do not allow storing null/undefined payloads — require an object or array
+    if (dataObj === null || typeof dataObj === 'undefined') {
+      return res.status(400).json({ error: 'Invalid data payload' });
+    }
+
     const normalizeModuleName = (name) => {
       try {
         return String(name || '')
