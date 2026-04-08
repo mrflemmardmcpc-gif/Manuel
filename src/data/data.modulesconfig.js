@@ -1,9 +1,6 @@
 export default {
-  "Plombier": {
+  "Plombier/Chauffagiste": {
     "requiresAuth": false
-  },
-  "Chauffagiste": {
-    "requiresAuth": true
   },
   "Maçon": {
     "requiresAuth": true

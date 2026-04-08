@@ -5,6 +5,7 @@ import NewCategoryModal from "../components/NewCategoryModal";
 function FullEditorPage({ open, onClose, sections, categories, darkMode, theme, 
   editingSectionId, editSectionName, setEditSectionName, editSectionEmoji, setEditSectionEmoji, editSectionColor, setEditSectionColor, startEditSection, saveEditSection, cancelEditSection, deleteSection,
   editingCategoryId, editCategoryName, setEditCategoryName, editCategoryEmoji, setEditCategoryEmoji, editCategoryColor, setEditCategoryColor, startEditCategory, saveEditCategory, cancelEditCategory, deleteCategory,
+  moveSubToCategory, moveCategoryToSection,
   ...editorProps
 }) {
   const [showNewCategoryModal, setShowNewCategoryModal] = React.useState(false);
@@ -39,6 +40,8 @@ function FullEditorPage({ open, onClose, sections, categories, darkMode, theme,
           addSection={editorProps.addSection}
           setExpandedCategoryId={editorProps.setExpandedCategoryId}
           theme={theme}
+          moveSubToCategory={moveSubToCategory}
+          moveCategoryToSection={moveCategoryToSection}
           // section edit handlers
           editingSectionId={editingSectionId}
           editSectionName={editSectionName}

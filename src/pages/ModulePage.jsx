@@ -478,6 +478,14 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     if (editingCategoryId === catId) cancelEditCategory();
   };
 
+  const moveCategoryToSection = (catId, newSectionId) => {
+    if (!catId || typeof newSectionId === 'undefined' || newSectionId === null) return;
+    updateData(prev => ({
+      ...prev,
+      categories: (prev.categories || []).map(cat => cat.id === catId ? { ...cat, sectionId: newSectionId } : cat)
+    }));
+  };
+
   useEffect(() => {
     if (editMode) {
       const firstSub = data.categories?.[0]?.subs?.[0];
@@ -685,6 +693,7 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         addCategory={addCategory}
         addSection={addSection}
         moveSubToCategory={moveSubToCategory}
+        moveCategoryToSection={moveCategoryToSection}
         isAuthenticated={isAdmin}
         editMode={editMode}
         onOpenNewCategoryModal={handleOpenNewCategoryModal}

@@ -8,7 +8,6 @@ import { FaHardHat, FaRulerCombined, FaFire, FaBrush, FaWindowRestore, FaWater, 
 import { useState, useEffect, useRef } from 'react';
 import { CubeButton, LoginModal } from './ui';
 import Plombier from './pages/Plombier';
-import Chauffagiste from './pages/Chauffagiste';
 import Macon from './pages/Macon';
 import Couvreur from './pages/Couvreur';
 import Menuisier from './pages/Menuisier';
@@ -33,16 +32,10 @@ const THEME = {
 
 const modules = [
   {
-    name: 'Plombier',
+    name: 'Plombier/Chauffagiste',
     icon: <MdPlumbing size={32} color="#0077b6" />, 
-    link: '#plombier',
+    link: '#plombier-chauffagiste',
     color: '#caf0f8',
-  },
-  {
-    name: 'Chauffagiste',
-    icon: <MdFireExtinguisher size={32} color="#e85d04" />, 
-    link: '#chauffagiste',
-    color: '#ffd6a5',
   },
   {
     name: 'Maçon',
@@ -149,7 +142,7 @@ function App() {
         modules.forEach(m => {
           const p = src && src[m.name];
           normalized[m.name] = {
-            requiresAuth: (p && typeof p.requiresAuth === 'boolean') ? p.requiresAuth : !(m.name === 'Plombier' || m.name === 'Chauffagiste')
+            requiresAuth: (p && typeof p.requiresAuth === 'boolean') ? p.requiresAuth : !(m.name === 'Plombier/Chauffagiste')
           };
         });
         return normalized;
@@ -160,7 +153,7 @@ function App() {
     const defaults = {};
     modules.forEach(m => {
       defaults[m.name] = {
-        requiresAuth: !(m.name === 'Plombier' || m.name === 'Chauffagiste')
+        requiresAuth: !(m.name === 'Plombier/Chauffagiste')
       };
     });
     return defaults;
@@ -211,7 +204,7 @@ function App() {
 
   const toggleRequiresAuth = (name) => {
     // When admin toggles visibility, ask for confirmation (both lock and unlock)
-    const currently = modulesConfig && modulesConfig[name] && typeof modulesConfig[name].requiresAuth === 'boolean' ? modulesConfig[name].requiresAuth : !(name === 'Plombier' || name === 'Chauffagiste');
+    const currently = modulesConfig && modulesConfig[name] && typeof modulesConfig[name].requiresAuth === 'boolean' ? modulesConfig[name].requiresAuth : !(name === 'Plombier/Chauffagiste');
     const target = !currently;
     if (isAdmin) {
       setPendingLockModule(name);
@@ -350,8 +343,7 @@ function App() {
     };
 
     const pages = {
-      'Plombier': <Plombier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
-      'Chauffagiste': <Chauffagiste exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
+      'Plombier/Chauffagiste': <Plombier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
       'Maçon': <Macon exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
       'Couvreur': <Couvreur exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
       'Menuisier': <Menuisier exportRef={exportRef} isAdmin={isAdmin} onHome={attemptGoHome} onDirtyChange={setHasUnsavedChanges} />,
@@ -458,7 +450,7 @@ function App() {
       <header className="App-header">
         <div className="circle-menu">
           {modules.map((mod, idx) => {
-            const cfg = modulesConfig[mod.name] || { requiresAuth: !(mod.name === 'Plombier' || mod.name === 'Chauffagiste') };
+            const cfg = modulesConfig[mod.name] || { requiresAuth: !(mod.name === 'Plombier/Chauffagiste') };
             const disabled = (cfg.requiresAuth && !isAdmin);
             return (
               <div
@@ -474,7 +466,11 @@ function App() {
               >
                 <div className="circle-item-inner" style={{ background: mod.color }}>
                   {mod.icon}
-                  <span className="circle-label">{mod.name}</span>
+                  <span className="circle-label">
+                    {String(mod.name).split(/[/\s]+/).map((part, i) => (
+                      <span key={i} className="circle-label-line">{part}</span>
+                    ))}
+                  </span>
                   {isAdmin && (
                     <div className="circle-admin-controls" onClick={(e) => e.stopPropagation()}>
                       <button className="admin-btn" title={cfg.requiresAuth ? 'Requiert admin' : 'Public'} onClick={() => toggleRequiresAuth(mod.name)}>
