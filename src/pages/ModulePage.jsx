@@ -242,6 +242,15 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
         if (!remoteVal || (typeof remoteVal === 'object' && !Array.isArray(remoteVal) && Object.keys(remoteVal).length === 0)) {
           return;
         }
+        // If remote has an explicit empty categories array but local still has categories,
+        // ignore the remote to avoid wiping local content that may be authoritative.
+        try {
+          const lastLocal = lastLocalSnapRef.current ? JSON.parse(lastLocalSnapRef.current) : {};
+          const localCats = Array.isArray(lastLocal.categories) ? lastLocal.categories : [];
+          if (Array.isArray(remoteVal.categories) && remoteVal.categories.length === 0 && localCats.length > 0) {
+            return;
+          }
+        } catch (e) { /* ignore parsing errors and continue */ }
         const remoteSnap = JSON.stringify(remoteVal || {});
         if (remoteSnap !== lastRemoteSnapRef.current) {
           lastRemoteSnapRef.current = remoteSnap;
