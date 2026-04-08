@@ -63,6 +63,37 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     } catch (e) {}
   };
 
+  // Immediate export helper: update local state and POST to /api/export-set right away
+  const exportNow = async (payload) => {
+    try {
+      if (!isAdmin) {
+        updateData(payload);
+        return;
+      }
+      // prevent the debounced autosave from scheduling while we perform immediate export
+      suppressAutosaveRef.current = true;
+      // update local state synchronously
+      updateData(payload);
+      try {
+        const res = await fetch('/api/export-set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ module: moduleName, data: payload }) });
+        let json = null;
+        try { json = await res.json(); } catch (e) { /* ignore */ }
+        if (res.ok && json && json.success) {
+          try { baseSnapshotRef.current = JSON.stringify(payload); } catch (e) {}
+          try { setIsDirty(false); if (typeof onDirtyChange === 'function') onDirtyChange(false); } catch (e) {}
+          try { mergedBaseRef.current = JSON.stringify(payload); lastLocalSnapRef.current = JSON.stringify(payload); } catch (e) {}
+        } else {
+          console.error('[ModulePage] export-set failed', res.status, json);
+        }
+      } catch (e) {
+        console.error('[ModulePage] export-set request error', e);
+      }
+    } finally {
+      // small delay to avoid immediate rescheduling
+      setTimeout(() => { suppressAutosaveRef.current = false; }, 50);
+    }
+  };
+
   useEffect(() => {
     return () => { if (autosaveTimerRef.current) { clearTimeout(autosaveTimerRef.current); autosaveTimerRef.current = null; } };
   }, []);
@@ -418,14 +449,17 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
 
   const addSection = (sectionParam) => {
     if (sectionParam && sectionParam.id) {
-      updateData(prev => ({ ...prev, sections: [...(prev.sections || []), sectionParam] }));
+      // immediate export when creating programmatically
+      const next = deepClone(data || {});
+      next.sections = [...(next.sections || []), sectionParam];
+      exportNow(next);
       return;
     }
     const name = (newSectionName || '').trim();
     if (!name) return;
     const id = Date.now();
     const section = { id, name, color: newSectionColor || '#6d4aff', emoji: newSectionEmoji || '📁' };
-    updateData(prev => ({ ...prev, sections: [...(prev.sections || []), section] }));
+    exportNow(Object.assign({}, deepClone(data || {}), { sections: [...((data && data.sections) || []), section] }));
     setNewSectionName(''); setNewSectionEmoji(''); setNewSectionColor('#6d4aff');
   };
 
@@ -449,19 +483,17 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
 
   const saveEditSection = () => {
     if (editingSectionId === null) return;
-    updateData(prev => {
-      const sections = (prev.sections || []).map(sec => sec.id == editingSectionId ? { ...sec, name: editSectionName, emoji: editSectionEmoji, color: editSectionColor } : sec);
-      return { ...prev, sections };
-    });
+    const next = deepClone(data || {});
+    next.sections = (next.sections || []).map(sec => sec.id == editingSectionId ? { ...sec, name: editSectionName, emoji: editSectionEmoji, color: editSectionColor } : sec);
+    exportNow(next);
     setEditingSectionId(null); setEditSectionName(''); setEditSectionEmoji(''); setEditSectionColor('');
   };
 
   const saveEditCategory = () => {
     if (editingCategoryId === null) return;
-    updateData(prev => {
-      const categories = (prev.categories || []).map(cat => cat.id === editingCategoryId ? { ...cat, name: editCategoryName, icon: editCategoryEmoji, color: editCategoryColor } : cat);
-      return { ...prev, categories };
-    });
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).map(cat => cat.id === editingCategoryId ? { ...cat, name: editCategoryName, icon: editCategoryEmoji, color: editCategoryColor } : cat);
+    exportNow(next);
     setEditingCategoryId(null); setEditCategoryName(''); setEditCategoryEmoji(''); setEditCategoryColor('');
   };
 
@@ -475,28 +507,28 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
 
   const deleteSection = (id) => {
     if (!window.confirm('Supprimer cette section et ses catégories ?')) return;
-    updateData(prev => {
-      const sections = (prev.sections || []).filter(sec => sec.id != id);
-      const categories = (prev.categories || []).filter(cat => cat.sectionId != id);
-      return { ...prev, sections, categories };
-    });
+    const next = deepClone(data || {});
+    next.sections = (next.sections || []).filter(sec => sec.id != id);
+    next.categories = (next.categories || []).filter(cat => cat.sectionId != id);
+    exportNow(next);
     if (selectedSectionId == id) setSelectedSectionId(null);
   };
 
   const deleteCategory = (catId) => {
     if (!catId) return;
     if (!window.confirm('Supprimer cette catégorie et ses sous-modules ?')) return;
-    updateData(prev => ({ ...prev, categories: (prev.categories || []).filter(c => c.id !== catId) }));
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).filter(c => c.id !== catId);
+    exportNow(next);
     if (expandedCategoryId === catId) setExpandedCategoryId(null);
     if (editingCategoryId === catId) cancelEditCategory();
   };
 
   const moveCategoryToSection = (catId, newSectionId) => {
     if (!catId || typeof newSectionId === 'undefined' || newSectionId === null) return;
-    updateData(prev => ({
-      ...prev,
-      categories: (prev.categories || []).map(cat => cat.id === catId ? { ...cat, sectionId: newSectionId } : cat)
-    }));
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).map(cat => cat.id === catId ? { ...cat, sectionId: newSectionId } : cat);
+    exportNow(next);
   };
 
   useEffect(() => {
@@ -534,34 +566,30 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
 
   const moveSubToCategory = (subId, newCatId) => {
     if (!subId || !newCatId) return;
-    updateData(prev => {
-      let subToMove = null;
-      const newCategories = (prev.categories || []).map(cat => {
-        if ((cat.subs || []).some(sub => sub.id === subId)) {
-          subToMove = (cat.subs || []).find(sub => sub.id === subId);
-          return { ...cat, subs: (cat.subs || []).filter(sub => sub.id !== subId) };
-        }
-        return cat;
-      });
-      if (!subToMove) return prev;
-      return {
-        ...prev,
-        categories: newCategories.map(cat => cat.id === newCatId ? { ...cat, subs: [...(cat.subs || []), subToMove] } : cat)
-      };
+    const next = deepClone(data || {});
+    let subToMove = null;
+    next.categories = (next.categories || []).map(cat => {
+      if ((cat.subs || []).some(sub => sub.id === subId)) {
+        subToMove = (cat.subs || []).find(sub => sub.id === subId);
+        return { ...cat, subs: (cat.subs || []).filter(sub => sub.id !== subId) };
+      }
+      return cat;
     });
+    if (!subToMove) return;
+    next.categories = next.categories.map(cat => cat.id === newCatId ? { ...cat, subs: [...(cat.subs || []), subToMove] } : cat);
+    exportNow(next);
     setEditingSubId(subId);
   };
 
   const saveEditSub = (normalizedText) => {
     if (!editingSubId) return;
     console.log(`[ModulePage:${moduleName}] saveEditSub called`, { editingSubId, editTitle, normalizedText: (normalizedText || '').slice(0,120) });
-    updateData(prev => ({
-      ...prev,
-      categories: (prev.categories || []).map(cat => ({
-        ...cat,
-        subs: (cat.subs || []).map(sub => sub.id === editingSubId ? { ...sub, title: editTitle, text: normalizedText, color: editColor || sub.color } : sub)
-      }))
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).map(cat => ({
+      ...cat,
+      subs: (cat.subs || []).map(sub => sub.id === editingSubId ? { ...sub, title: editTitle, text: normalizedText, color: editColor || sub.color } : sub)
     }));
+    exportNow(next);
   };
 
   const saveNewSub = () => {
@@ -575,10 +603,9 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     const newId = maxId + 1;
     const newSub = { id: newId, title: newSubTitle.trim(), text: '', color: newSubColor || '#8a96a8' };
     console.log(`[ModulePage:${moduleName}] saveNewSub`, { addingSubToCatId, newId, title: newSub.title });
-    updateData(prev => ({
-      ...prev,
-      categories: (prev.categories || []).map(cat => cat.id === addingSubToCatId ? { ...cat, subs: [...(cat.subs || []), newSub] } : cat)
-    }));
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).map(cat => cat.id === addingSubToCatId ? { ...cat, subs: [...(cat.subs || []), newSub] } : cat);
+    exportNow(next);
     setNewSubTitle("");
     setNewSubColor("#10b981");
     setEditingSubId(newId);
@@ -598,10 +625,9 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     const newId = maxId + 1;
     const newSub = { id: newId, title: 'Nouveau module', text: '', color: newSubColor || '#8a96a8' };
     console.log(`[ModulePage:${moduleName}] createAndEditSub`, { catId, newId, title: newSub.title });
-    updateData(prev => ({
-      ...prev,
-      categories: (prev.categories || []).map(cat => cat.id === catId ? { ...cat, subs: [...(cat.subs || []), newSub] } : cat)
-    }));
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).map(cat => cat.id === catId ? { ...cat, subs: [...(cat.subs || []), newSub] } : cat);
+    exportNow(next);
     setNewSubTitle('');
     setNewSubColor('#10b981');
     setEditTitle(newSub.title);
@@ -615,16 +641,17 @@ export default function ModulePage({ isAdmin = false, onHome, moduleName = 'Modu
     if (!catId || !subId) return;
     if (!window.confirm('Supprimer cette sous-catégorie ?')) return;
     console.log(`[ModulePage:${moduleName}] deleteSub`, { catId, subId });
-    updateData(prev => ({
-      ...prev,
-      categories: (prev.categories || []).map(cat => cat.id === catId ? { ...cat, subs: (cat.subs || []).filter(s => s.id !== subId) } : cat)
-    }));
+    const next = deepClone(data || {});
+    next.categories = (next.categories || []).map(cat => cat.id === catId ? { ...cat, subs: (cat.subs || []).filter(s => s.id !== subId) } : cat);
+    exportNow(next);
     if (editingSubId === subId) setEditingSubId(null);
   };
 
   const addCategory = (newCat) => {
     if (!newCat) return;
-    updateData(prev => ({ ...prev, categories: [...(prev.categories || []), newCat] }));
+    const next = deepClone(data || {});
+    next.categories = [...(next.categories || []), newCat];
+    exportNow(next);
   };
 
   const filteredCategories = useMemo(() => {
